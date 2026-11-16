@@ -1,0 +1,55 @@
+name: Build APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Siapkan proyek Android
+        run: |
+          mkdir www
+          cp index.html manifest.webmanifest sw.js icon-192.png icon-512.png www/
+          npm init -y
+          npm i @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npx cap init "Onar Simulator" com.onar.simulator --web-dir=www
+          npx cap add android
+          npx cap sync android
+      - name: Layar landscape dan ikon
+        run: |
+          sed -i 's/<activity/<activity android:screenOrientation="landscape"/' android/app/src/main/AndroidManifest.xml
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26
+          pip install pillow
+          python3 - <<'PY'
+          from PIL import Image
+          import os
+          src = Image.open('icon-512.png').convert('RGB')
+          for k, n in {'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}.items():
+              p = 'android/app/src/main/res/mipmap-' + k
+              os.makedirs(p, exist_ok=True)
+              im = src.resize((n, n), Image.LANCZOS)
+              im.save(p + '/ic_launcher.png')
+              im.save(p + '/ic_launcher_round.png')
+          PY
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - name: Terbitkan ke Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk onar-simulator.apk
+          gh release create "v${{ github.run_number }}" onar-simulator.apk --repo "${{ github.repository }}" --title "Onar Simulator v${{ github.run_number }}" --notes "Unduh onar-simulator.apk lalu pasang di Android."
