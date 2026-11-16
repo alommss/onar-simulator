@@ -1507,6 +1507,33 @@ function hideHome(){$('home').style.display='none'}
 function tapHome(id,fn){const el=$(id);if(!el)return;el.addEventListener('click',e=>{e.preventDefault();fn()})}
 tapHome('hDR',()=>{audio();reset();setMode('drag');cyaw=0;cpitch=.2;st='race';hideHome()});
 tapHome('hOW',()=>{audio();reset();setMode('ow');cyaw=0;cpitch=.25;startOW();st='ow';hideHome()});
+/* ===== ZEBRA CROSS: dari titik awal (X 39.4, Z -43.4) sampai titik akhir (X 21.1, Z -43.0) =====
+   Belang putih berjajar di sepanjang garis A->E, tiap belang memanjang melintang garis itu (seperti foto referensi).
+   ZW = panjang tiap belang (m), NB = jumlah belang (lebar belang = lebar celah, pas dari titik awal sampai titik akhir), Y = tinggi di atas aspal. */
+try{(function(){
+ const A={x:39.4,z:-43.4},E={x:21.1,z:-43.0},ZW=3.5,NB=19,Y=.02;
+ const dx=E.x-A.x,dz=E.z-A.z,len=Math.hypot(dx,dz),W=2048,H=256,U=W/(2*NB-1);
+ let sd=7;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
+ const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
+ for(let i=0;i<NB;i++){g.fillStyle='rgba(236,236,230,'+(.9+rnd()*.1).toFixed(3)+')';g.fillRect(i*2*U,0,U,H)}
+ g.globalCompositeOperation='destination-out'; /* cat agak aus/terkelupas seperti di foto */
+ for(let k=0;k<2600;k++){g.fillStyle='rgba(0,0,0,'+(.15+rnd()*.35).toFixed(2)+')';const s=1+rnd()*3;g.fillRect(rnd()*W,rnd()*H,s,s)}
+ const tx=new THREE.CanvasTexture(cv);tx.encoding=THREE.sRGBEncoding;tx.anisotropy=MAXA;
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(len,ZW),new THREE.MeshStandardMaterial({map:tx,transparent:true,roughness:.9,metalness:0,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+ m.rotation.x=-Math.PI/2;
+ const G=new THREE.Group();G.position.set((A.x+E.x)/2,Y,(A.z+E.z)/2);G.rotation.y=Math.atan2(-dz,dx);G.add(m);owG.add(G);
+})()}catch(e){console.error('zebra cross',e)}
+/* ===== HAPUS JALAN: jalan lurus ke arah barat mulai dari X 18.1 (Z -116.5, menghadap 91°), aspal + marka + trotoar kiri-kanan =====
+   Jalan dasar Open World adalah satu tekstur ubin 80 m (owRoad), jadi tidak bisa dihapus per bagian. Koridornya ditimpa tanah hijau gelap
+   yang sama persis dengan area kosong di map. Jalan ini berpusat di Z -120: aspal 42.2 m + trotoar 4 m tiap sisi => setengah lebar 25.2 m (+margin).
+   X0 = titik awal (ke arah X mengecil), LEN = panjang penimpa, CZ = pusat jalan, HW = setengah lebar koridor. */
+try{(function(){
+ const X0=18.1,LEN=20000,CZ=-120,HW=25.25,Y=.01;
+ const t=ctex(512,512,(g,w,h)=>{g.fillStyle='#1d2a1e';g.fillRect(0,0,w,h);
+  for(let i=0;i<4000;i++){g.fillStyle=i%2?'rgba(255,255,255,.04)':'rgba(0,0,0,.1)';g.fillRect(Math.random()*w,Math.random()*h,2,2)}},LEN/80,HW*2/80);
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(LEN,HW*2),new THREE.MeshStandardMaterial({map:t,roughness:.3,metalness:.3,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+ m.rotation.x=-Math.PI/2;m.position.set(X0-LEN/2,Y,CZ);owG.add(m);
+})()}catch(e){console.error('hapus jalan',e)}
 /* ===== ANIMASI KLIK TOMBOL HOME: riak + membal ===== */
 (function(){const SEL='.homeBtn,.homeSettings,#hON,#hUN,.srv,.mdlBtn';
  addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest(SEL);if(!b)return;const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2,x=document.createElement('span');x.className='rip';x.style.cssText='width:'+d+'px;height:'+d+'px;left:'+(e.clientX-r.left-d/2)+'px;top:'+(e.clientY-r.top-d/2)+'px';b.appendChild(x);setTimeout(()=>x.remove(),650)},true);
@@ -1613,7 +1640,7 @@ window.ONL=(function(){
    subs=[D.onChildAdded(pRef,up,ec),D.onChildChanged(pRef,up,ec),D.onChildRemoved(pRef,s=>drop(s.key),ec)];
    ensureFx();on=true;lk='';sT=lT=hT=0;
    subs.push(D.onValue(D.ref(db,'.info/connected'),s=>{if(s.val()!==true||!on||!meRef)return;
-    try{D.onDisconnect(meRef).remove().catch(()=>{});D.update(meRef,{n:USERNAME,pb:(PAINT&&PAINT.b)||'',pv:(PAINT&&PAINT.v)||'',t:D.serverTimestamp()}).catch(()=>{});lk=''}catch(e){console.error('ONL reconnect',e)}},e=>console.error('ONL',e)));
+    try{D.onDisconnect(meRef).remove().catch(()=>{});lk=''}catch(e){console.error('ONL reconnect',e)}},e=>console.error('ONL',e)));
    const sa='calc(14px + env(safe-area-inset-left,0px))',st0='env(safe-area-inset-top,0px)';
    hud=document.createElement('div');hud.style.cssText='position:fixed;left:'+sa+';top:calc(182px + '+st0+');z-index:6;display:flex;gap:8px;align-items:center;pointer-events:none';
    hbd=document.createElement('div');hbd.style.cssText='padding:6px 10px;border-radius:10px;background:#0b1f18cc;border:1px solid #5fe3a566;color:#7dffc0;font:800 11px/1 system-ui,sans-serif;letter-spacing:1px';hbd.textContent='● ONLINE · 1 pemain';
@@ -1636,7 +1663,7 @@ window.ONL=(function(){
   tick(dt){
    if(!on)return;const now=performance.now();
    if(now-sT>=100){sT=now;const f=ow.foot?1:0,x=+ow.x.toFixed(2),z=+ow.z.toFixed(2),h=+ow.h.toFixed(3),wx=f?+wk.x.toFixed(2):x,wz=f?+wk.z.toFixed(2):z,wh=f?+wk.h.toFixed(3):h,v=+(f?Math.abs(wk.v):P.v).toFixed(1),wp=+(WH.p||0).toFixed(3),rz=+(f?0:ow.steer*Math.min(.45,P.v/25)*.8).toFixed(3),su=(SUP.on&&!f)?1:0,rv=+((f?0:P.rv)||0).toFixed(2),bn=(P.burn&&!f)?1:0,th=+(f?0:(P.th||0)).toFixed(2),rp=Math.round((P.rpm||1250)/25)*25,dr=(typeof ENG!=='undefined'&&ENG.drod)?1:0,key=[x,z,h,f,wx,wz,wh,wp,rz,su,rv,bn,th,rp,dr].join();
-    if(key!==lk||now-lT>3000){lk=key;lT=now;send({x,z,h,v,f,wx,wz,wh,wp,rz,su,rv,bn,th,rp,dr,t:D.serverTimestamp()})}}
+    if(key!==lk||now-lT>3000){lk=key;lT=now;send({n:USERNAME,pb:(PAINT&&PAINT.b)||'',pv:(PAINT&&PAINT.v)||'',x,z,h,v,f,wx,wz,wh,wp,rz,su,rv,bn,th,rp,dr,t:D.serverTimestamp()})}}
    const L0=ow.foot?wk:ow,LX=L0.x,LZ=L0.z,k=Math.min(1,dt*10);
    for(const [id,r] of pl){
     if(now-r.seen>20000){drop(id);continue}
