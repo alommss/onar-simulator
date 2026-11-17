@@ -826,6 +826,7 @@ const inp={l:0,r:0,brk:0,bn:0},ow={x:40,z:0,h:0,odo:0,steer:0,cb:0},blocks=new M
    LKR.len = panjang ke kiri (-x), LKR.y = tinggi permukaan jalan.
    LKR.clear = true -> gedung / pohon / tembok / tiang lampu yang ketimpa jalan dihapus otomatis. */
 const LKR={z:-63.1,w:24,x0:19,len:200,y:.1,clear:true};
+const LFT_Z0=LKR.z-LKR.w/2-.3; // batas: mulai dari sini ke arah -z sisi kiri dikosongkan
 const GPE=Math.max(-60,Math.min(60,-(LKR.z+LKR.w/2))); // trotoar Green Pramuka dipotong di sini (sisi -z) supaya tidak nabrak jalan baru
 function lkrIn(x,z,m){const L=LKR;m=m||0;return x<=L.x0+m&&x>=L.x0-L.len-m&&Math.abs(z-L.z)<=L.w/2+m}
 function lkrH(x,z){return lkrIn(x,z,0)?LKR.y:null}
@@ -837,7 +838,7 @@ const owRoad=add(new THREE.Mesh(new THREE.PlaneGeometry(640,640),new THREE.MeshS
 const winT=ctex(64,128,(g,w,h)=>{g.fillStyle='#000';g.fillRect(0,0,w,h);for(let y=0;y<16;y++)for(let x=0;x<8;x++)if(Math.random()<.45){g.fillStyle=Math.random()<.8?'#ffd98a':'#9fd2ff';g.fillRect(x*8+1,y*8+2,5,4)}},2,3);
 const bmat=['#2b2f3a','#3a302b','#24343a','#33333a'].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.85,emissive:0xffffff,emissiveMap:winT,emissiveIntensity:.8}));
 function mkBlock(bi,bj){const g=new THREE.Group();g.position.set(bi*80,0,bj*80);
- [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{const px=sx*17,pz=sz*17;if((bi*80+px>0&&bi*80+px<110&&bj*80+pz<-515&&bj*80+pz>-1250)||(LKR.clear&&lkrIn(bi*80+px,bj*80+pz,1.5)))return;add(new THREE.Mesh(pG,pM),px,3.6,pz,g);add(new THREE.Mesh(lG,lM),px,7.2,pz,g);const sp=new THREE.Sprite(sprM);sp.scale.set(6,6,1);sp.position.set(px,7.2,pz);g.add(sp)});
+ [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{const px=sx*17,pz=sz*17;if((bi*80+px>0&&bi*80+px<110&&bj*80+pz<-515&&bj*80+pz>-1250)||(LKR.clear&&lkrIn(bi*80+px,bj*80+pz,1.5))||(bi*80+px<10&&bj*80+pz<LFT_Z0))return;add(new THREE.Mesh(pG,pM),px,3.6,pz,g);add(new THREE.Mesh(lG,lM),px,7.2,pz,g);const sp=new THREE.Sprite(sprM);sp.scale.set(6,6,1);sp.position.set(px,7.2,pz);g.add(sp)});
  owG.add(g);return g}
 /* ===== KAWASAN "GREEN PRAMUKA CITY" di sisi kiri titik spawn Open World (replika dari foto referensi) =====
    Sistem koordinat lokal grup: x = kanan pemain yang menghadap gerbang, y = atas, z+ = ke arah pemain/jalan raya. Gerbang ada di z=0. */
@@ -1534,6 +1535,19 @@ try{(function(){
  const m=new THREE.Mesh(new THREE.PlaneGeometry(LEN,HW*2),new THREE.MeshStandardMaterial({map:t,roughness:.3,metalness:.3,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
  m.rotation.x=-Math.PI/2;m.position.set(X0-LEN/2,Y,CZ);owG.add(m);
 })()}catch(e){console.error('hapus jalan',e)}
+/* ===== HAPUS SEMUA BELOKAN KIRI DI DEPAN (kecuali LKR) ===== */
+try{(function(){
+ const X0=18.1,XL=20000,ZL=20000,Y=.02,SW=true;
+ const mat=t=>new THREE.MeshStandardMaterial({map:t,roughness:.3,metalness:.3,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
+ const t=ctex(512,512,(g,w,h)=>{g.fillStyle='#1d2a1e';g.fillRect(0,0,w,h);
+  for(let i=0;i<4000;i++){g.fillStyle=i%2?'rgba(255,255,255,.04)':'rgba(0,0,0,.1)';g.fillRect(Math.random()*w,Math.random()*h,2,2)}},XL/80,ZL/80);
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(XL,ZL),mat(t));
+ m.rotation.x=-Math.PI/2;m.position.set(X0-XL/2,Y,LFT_Z0-ZL/2);owG.add(m);
+ if(SW){
+  const s=ctex(8,8,(g,w,h)=>{g.fillStyle='#3b3b42';g.fillRect(0,0,w,h)},1,1);
+  const sm=new THREE.Mesh(new THREE.PlaneGeometry(X0-14.84,ZL),mat(s));
+  sm.rotation.x=-Math.PI/2;sm.position.set((X0+14.84)/2,Y+.005,LFT_Z0-ZL/2);owG.add(sm)}
+})()}catch(e){console.error('hapus belokan kiri',e)}
 /* ===== ANIMASI KLIK TOMBOL HOME: riak + membal ===== */
 (function(){const SEL='.homeBtn,.homeSettings,#hON,#hUN,.srv,.mdlBtn';
  addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest(SEL);if(!b)return;const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2,x=document.createElement('span');x.className='rip';x.style.cssText='width:'+d+'px;height:'+d+'px;left:'+(e.clientX-r.left-d/2)+'px;top:'+(e.clientY-r.top-d/2)+'px';b.appendChild(x);setTimeout(()=>x.remove(),650)},true);
