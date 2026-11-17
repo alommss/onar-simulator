@@ -20,7 +20,7 @@ jobs:
       - name: Siapkan proyek Android
         run: |
           mkdir www
-          cp index.html manifest.webmanifest sw.js icon-192.png icon-512.png www/
+          cp index.html vario_model.js manifest.webmanifest sw.js icon-192.png icon-512.png www/
           npm init -y
           npm i @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
           npx cap init "Onar Simulator" com.onar.simulator --web-dir=www
