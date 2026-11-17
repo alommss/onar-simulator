@@ -450,10 +450,10 @@ const glowT=ctex(64,64,(g)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.
 const glowM=c=>new THREE.SpriteMaterial({map:glowT,color:c,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,fog:false});
 const poolM=new THREE.MeshBasicMaterial({map:glowT,color:0xff9a40,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.55,fog:false});
 // ===== lintasan =====
-const roadT=ctex(256,192,(g,w,h)=>{g.fillStyle='#1b1c22';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=i%2?'rgba(255,255,255,.05)':'rgba(0,0,0,.12)';g.fillRect(Math.random()*w,Math.random()*h,2,2)}
+const roadT=ctex(256,192,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=i%2?'rgba(255,255,255,.05)':'rgba(0,0,0,.12)';g.fillRect(Math.random()*w,Math.random()*h,2,2)}
  g.fillStyle='rgba(0,0,0,.4)';[-2.6,-1.95,1.85,2.45].forEach(x=>g.fillRect((x+8)*16,0,6,h));
  g.fillStyle='#d8d8d8';g.fillRect(w/2-2,0,4,48);g.fillRect(8,0,3,h);g.fillRect(w-11,0,3,h)},1,640/12);
-const road=add(new THREE.Mesh(new THREE.PlaneGeometry(16,640),new THREE.MeshStandardMaterial({map:roadT,roughness:.28,metalness:.35})),0,0,-300);road.rotation.x=-Math.PI/2;
+const road=add(new THREE.Mesh(new THREE.PlaneGeometry(16,640),new THREE.MeshStandardMaterial({map:roadT,roughness:.35,metalness:.2})),0,0,-300);road.rotation.x=-Math.PI/2;
 const curbT=ctex(8,64,g=>{g.fillStyle='#ddd';g.fillRect(0,0,8,32);g.fillStyle='#111';g.fillRect(0,32,8,32)},1,640/6);
 [-1,1].forEach(s=>{add(new THREE.Mesh(bx(.5,.16,640),new THREE.MeshStandardMaterial({map:curbT,roughness:.6})),s*8.25,.08,-300);add(new THREE.Mesh(bx(9,.14,640),std('#34343b',.7)),s*12.5,.07,-300)});
 const sl=add(new THREE.Mesh(new THREE.PlaneGeometry(16,.5),bas('#cfcfcf')),0,.03,-.25);sl.rotation.x=-Math.PI/2;
@@ -831,10 +831,11 @@ const GPE=Math.max(-60,Math.min(60,-(LKR.z+LKR.w/2))); // trotoar Green Pramuka 
 function lkrIn(x,z,m){const L=LKR;m=m||0;return x<=L.x0+m&&x>=L.x0-L.len-m&&Math.abs(z-L.z)<=L.w/2+m}
 function lkrH(x,z){return lkrIn(x,z,0)?LKR.y:null}
 const owT=ctex(512,512,(g,w,h)=>{g.fillStyle='#1d2a1e';g.fillRect(0,0,w,h);g.fillStyle='#3b3b42';g.fillRect(95,0,322,h);g.fillRect(0,95,w,322);
- g.fillStyle='#1a1b21';g.fillRect(121,0,270,h);g.fillRect(0,121,w,270);
+ g.fillStyle='#202127';g.fillRect(121,0,270,h);g.fillRect(0,121,w,270);
+ for(let i=0;i<24000;i++){const a=Math.random()<.5,px=a?121+Math.random()*270:Math.random()*w,py=a?Math.random()*h:121+Math.random()*270;g.fillStyle=i%2?'rgba(255,255,255,.05)':'rgba(0,0,0,.12)';g.fillRect(px,py,1.2,1.2)}
  for(let i=0;i<4000;i++){g.fillStyle=i%2?'rgba(255,255,255,.04)':'rgba(0,0,0,.1)';g.fillRect(Math.random()*w,Math.random()*h,2,2)}
  g.fillStyle='#d8c050';for(let k=0;k<8;k++){const p=k*64+16;if(Math.abs(p+16-256)>167){g.fillRect(253,p,6,32);g.fillRect(p,253,32,6)}}},8,8);
-const owRoad=add(new THREE.Mesh(new THREE.PlaneGeometry(640,640),new THREE.MeshStandardMaterial({map:owT,roughness:.3,metalness:.3})),0,0,0,owG);owRoad.rotation.x=-Math.PI/2;
+const owRoad=add(new THREE.Mesh(new THREE.PlaneGeometry(640,640),new THREE.MeshStandardMaterial({map:owT,roughness:.35,metalness:.2})),0,0,0,owG);owRoad.rotation.x=-Math.PI/2;
 const winT=ctex(64,128,(g,w,h)=>{g.fillStyle='#000';g.fillRect(0,0,w,h);for(let y=0;y<16;y++)for(let x=0;x<8;x++)if(Math.random()<.45){g.fillStyle=Math.random()<.8?'#ffd98a':'#9fd2ff';g.fillRect(x*8+1,y*8+2,5,4)}},2,3);
 const bmat=['#2b2f3a','#3a302b','#24343a','#33333a'].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.85,emissive:0xffffff,emissiveMap:winT,emissiveIntensity:.8}));
 function mkBlock(bi,bj){const g=new THREE.Group();g.position.set(bi*80,0,bj*80);
@@ -855,7 +856,7 @@ const noise=(g,w,h,n,a)=>{for(let i=0;i<n;i++){g.fillStyle=i%2?'rgba(255,255,255
 // ---------- tekstur dasar ----------
 const grassT=cv(128,128,(g,w,h)=>{g.fillStyle='#1d4423';g.fillRect(0,0,w,h);noise(g,w,h,900,.07)},24,24);
 const pavT=cv(256,256,(g,w,h)=>{g.fillStyle='#4a4742';g.fillRect(0,0,w,h);for(let r=0;r<16;r++)for(let c=0;c<8;c++){const x=c*32+(r%2?16:0),y=r*16,s=.9+R(r*8+c)*.22;g.fillStyle='rgb('+(96*s|0)+','+(91*s|0)+','+(84*s|0)+')';g.fillRect(x+1,y+1,30,14)}},30,10);
-const asphT=cv(128,128,(g,w,h)=>{g.fillStyle='#22232a';g.fillRect(0,0,w,h);noise(g,w,h,1200,.06)},12,12);
+const asphT=cv(128,128,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);noise(g,w,h,1200,.06)},12,12);
 const gG=gmat(grassT,.3),gP=gmat(pavT,.45),gA=gmat(asphT,.3);
 // ---------- lantai ----------
 flat(180,152,gG,0,.03,-81);                 // rumput belakang gerbang
@@ -1035,6 +1036,18 @@ function tree(x,z,h,sp,seed){const H=(h<10?h*1.6:h*1.3),lod=new THREE.LOD();
  [['L0',0],['L1',70]].forEach(([k,d])=>{const g=new THREE.Group();TREEG[k].forEach(ge=>g.add(new THREE.Mesh(ge,treeMat)));lod.addLevel(g,d)});
  lod.addLevel(new THREE.Object3D(),240);
  lod.position.set(x,0,z);lod.scale.setScalar(H);lod.rotation.y=R(seed*3.7)*6.283;GP.add(lod);return lod}
+// ---- batch pohon GLB: dipakai semua pohon di luar area GP (instancing + LOD per potongan 60 m) ----
+window.treeBatch=function(parent,list){ // list: [[x,y,z,tinggi_m,rotY],...] dalam koordinat lokal parent
+ const cs=60,ch=new Map(),o=new THREE.Object3D();
+ list.forEach(t=>{const k=Math.floor(t[0]/cs)+','+Math.floor(t[2]/cs);let c=ch.get(k);if(!c)ch.set(k,c=[]);c.push(t)});
+ ch.forEach(arr=>{let cx=0,cz=0;arr.forEach(t=>{cx+=t[0];cz+=t[2]});cx/=arr.length;cz/=arr.length;
+  const lod=new THREE.LOD();
+  [['L0',0],['L1',55]].forEach(([k,d])=>{const g=new THREE.Group();
+   TREEG[k].forEach(ge=>{const im=new THREE.InstancedMesh(ge,treeMat,arr.length);
+    arr.forEach((t,i)=>{o.position.set(t[0]-cx,t[1],t[2]-cz);o.rotation.set(0,t[4],0);o.scale.setScalar(t[3]);o.updateMatrix();im.setMatrixAt(i,o.matrix)});
+    im.frustumCulled=false;g.add(im)});
+   lod.addLevel(g,d)});
+  lod.addLevel(new THREE.Object3D(),260);lod.position.set(cx,0,cz);parent.add(lod)})};
 [[-42,-2,14,10],[-52,-6,16,11],[-32,-10,11,8],[-60,-12,15,10],[-38,-22,13,9]].forEach((t,i)=>tree(t[0],t[1],t[2],t[3],i*11+3));
 [[36,-3,17,12],[48,-5,19,13],[60,-7,17,12],[34,-20,14,9]].forEach((t,i)=>tree(t[0],t[1],t[2],t[3],i*13+90));
 for(let i=0;i<15;i++){tree(-36,-14-i*10,8,4.2,300+i,'#2f7234',5);tree(36,-24-i*10,8,4.2,400+i,'#2f7234',5)}
@@ -1136,14 +1149,14 @@ const L=RD.D3+40,cx=RD.D3/2+5,conc=std('#7d8087',.9),O3=new THREE.Object3D();
 const noise=(g,w,h)=>{for(let i=0;i<900;i++){g.fillStyle=i%2?'rgba(255,255,255,.05)':'rgba(0,0,0,.12)';g.fillRect(Math.random()*w,Math.random()*h,2,2)}};
 const dash=(g,x,w)=>{g.fillStyle='#d8d8d8';g.fillRect(x-1,10,w,30);g.fillRect(x-1,110,w,30)};
 // jalan datar: lajur berlawanan, 4 lajur utama, jalur sepeda hijau
-const gT=ctex(256,200,(g,w,h)=>{g.fillStyle='#24252b';g.fillRect(0,0,w,h);noise(g,w,h);g.fillStyle='#2f6f4f';g.fillRect(75+150,0,28,h);
+const gT=ctex(256,200,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);noise(g,w,h);g.fillStyle='#2f6f4f';g.fillRect(75+150,0,28,h);
  [38,117,150,183,224].forEach(x=>dash(g,x,3));g.fillStyle='#d8d8d8';[73,77,2,254].forEach(x=>g.fillRect(x,0,3,h))},1,L/20);
-const gp=add(new THREE.Mesh(new THREE.PlaneGeometry(25.6,L),new THREE.MeshStandardMaterial({map:gT,roughness:.35,metalness:.25})),-2.2,.03,-cx,G);gp.rotation.x=-Math.PI/2;
+const gp=add(new THREE.Mesh(new THREE.PlaneGeometry(25.6,L),new THREE.MeshStandardMaterial({map:gT,roughness:.35,metalness:.2})),-2.2,.03,-cx,G);gp.rotation.x=-Math.PI/2;
 // dek tanjakan (naik 6,5 m, datar, turun lagi)
-const N=(RD.D3-RD.D0)/4,dT=ctex(148,200,(g,w,h)=>{g.fillStyle='#22232a';g.fillRect(0,0,w,h);noise(g,w,h);[41,74,107].forEach(x=>dash(g,x,3));g.fillStyle='#d8d8d8';[5,142].forEach(x=>g.fillRect(x,0,3,h))},1,(RD.D3-RD.D0)/20);
+const N=(RD.D3-RD.D0)/4,dT=ctex(148,200,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);noise(g,w,h);[41,74,107].forEach(x=>dash(g,x,3));g.fillStyle='#d8d8d8';[5,142].forEach(x=>g.fillRect(x,0,3,h))},1,(RD.D3-RD.D0)/20);
 const dg=new THREE.PlaneGeometry(14.8,RD.D3-RD.D0,1,N);dg.rotateX(-Math.PI/2);const pa=dg.attributes.position,mid=(RD.D0+RD.D3)/2;
 for(let i=0;i<pa.count;i++)pa.setY(i,rdY(mid-pa.getZ(i))+.05);dg.computeVertexNormals();
-add(new THREE.Mesh(dg,new THREE.MeshStandardMaterial({map:dT,roughness:.35,metalness:.25})),0,0,-mid,G);
+add(new THREE.Mesh(dg,new THREE.MeshStandardMaterial({map:dT,roughness:.35,metalness:.2})),0,0,-mid,G);
 const dm=add(new THREE.Mesh(dg,new THREE.MeshStandardMaterial({color:0x5a5c60,roughness:.95,side:THREE.DoubleSide})),0,-.9,-mid,G);
 // pembatas beton di kiri-kanan tanjakan
 const bI=new THREE.InstancedMesh(new THREE.BoxGeometry(.5,1,4.1),conc,N*2);let k=0;
@@ -1159,7 +1172,7 @@ add(new THREE.Mesh(new THREE.BoxGeometry(.05,1,L),new THREE.MeshStandardMaterial
 const tG=new THREE.CylinderGeometry(.15,.2,2.4,6),cG=new THREE.SphereGeometry(1.6,8,8),tM=std('#3a2a1c'),lM2=std('#1f5a2a',.9);
 const ds=[];for(let d=10;d<RD.D3+20;d+=(d<460?40:80))ds.push(d);
 const mkI=(g,m,f)=>{const im=new THREE.InstancedMesh(g,m,ds.length);ds.forEach((d,i)=>{f(O3.position,d);O3.rotation.set(0,0,0);O3.updateMatrix();im.setMatrixAt(i,O3.matrix)});G.add(im)};
-mkI(tG,tM,(o,d)=>o.set(14.8,1.4,-d));mkI(cG,lM2,(o,d)=>o.set(14.8,3.6,-d));
+if(window.treeBatch)treeBatch(G,ds.map(d=>[14.8,.15,-d,5.8+(d*37%11)/11*1.4,(d*2.399)%6.283]));else{mkI(tG,tM,(o,d)=>o.set(14.8,1.4,-d));mkI(cG,lM2,(o,d)=>o.set(14.8,3.6,-d));}
 mkI(pG,pM,(o,d)=>o.set(12,3.8,-(d+20)));mkI(aG,pM,(o,d)=>o.set(11.1,7.4,-(d+20)));mkI(lG,lM,(o,d)=>o.set(10.2,7.35,-(d+20)));
 ds.filter(d=>d<460).forEach(d=>{const sp=new THREE.Sprite(sprM);sp.scale.set(6,6,1);sp.position.set(10.2,7.35,-(d+20));G.add(sp)});
 // jalan layang di sisi kiri + pilar bermural
@@ -1244,7 +1257,7 @@ const gM=M(gT,.9);gM.polygonOffset=true;gM.polygonOffsetFactor=-1;gM.polygonOffs
 F(170,L,gM,10,.02,L/2);
 // ---- badan jalan: jalur sepeda hijau, 2 lajur kiri, 3 lajur utama, gore bergaris miring, jalur kanan beraspal baru ----
 const U0=-14.5,UW=39.5,PX=16,X=u=>(u-U0)*PX;
-const rT=ctex(Math.round(UW*PX),512,(g,w,h)=>{g.fillStyle='#2b2c32';g.fillRect(0,0,w,h);g.fillStyle='#1f2025';g.fillRect(X(13.5),0,X(24.5)-X(13.5),h);
+const rT=ctex(Math.round(UW*PX),512,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);g.fillStyle='#202127';g.fillRect(X(13.5),0,X(24.5)-X(13.5),h);
  g.fillStyle='#2f7d57';g.fillRect(X(-14),0,X(-11)-X(-14),h);nz(g,w,h,7000,.05);
  g.fillStyle='#dcdcd8';const ds=u=>{for(let y=0;y<h;y+=128)g.fillRect(X(u)-2,y+16,5,48)},so=u=>g.fillRect(X(u)-2,0,5,h);
  [-11,-1.75,1.75,17.5,21].forEach(ds);[-5.3,5.3,13.8,24.2].forEach(so);
@@ -1263,10 +1276,10 @@ B(4.5,1.15,L,hM,10.75,.7,L/2);B(1.5,1,L-48,hM,-6.45,.62,45+(L-45)/2);B(2.1,.2,L-
 const cyG=new THREE.CylinderGeometry(.12,.95,6.6,8),cyM=std('#1d5a2b',.9),cy=[];
 for(let d=52;d<L;d+=7)cy.push([-6.45,4.2,d+R(d)*2,.85+R(d+1)*.3,.8+R(d+2)*.45,.85+R(d+1)*.3]),pole(-6.45,d);
 for(let d=12;d<L+40;d+=7.5)if(((d-20)%35+35)%35>4&&((d-20)%35)<31)cy.push([10.75,4.3,d,.9,.9+R(d)*.4,.9]);
-I(cyG,cyM,cy);
+if(window.treeBatch)treeBatch(G,cy.map(a=>[a[0],1,-a[2],6.2*a[4],R(a[2]*3.1)*6.283]));else I(cyG,cyM,cy);
 // ---- pohon besar di trotoar kiri (tajuk menaungi jalur sepeda) ----
 const trk=[],crw=[];for(let k=0,d=22;d<L;k++,d+=24+R(k)*8){trk.push([-16,3.2,d]);pole(-16,d);[[0,10.2,0,5.2],[-2.2,9,2.6,4.2],[2.6,9.4,-2.4,4.4],[-1,12,-1.5,3.6]].forEach(([a,b,c,r])=>crw.push([-14.6+a,b,d+c,r,r*.85,r,0,R(k+r)>.5?'#2a6e2c':'#1f5a2a']))}
-I(new THREE.CylinderGeometry(.5,.75,6.4,8),std('#4a3a2a',.95),trk);I(new THREE.SphereGeometry(1,10,8),std('#ffffff',.9),crw,true);
+if(window.treeBatch)treeBatch(G,trk.map(a=>[a[0],.22,-a[2],14+R(a[2])*3,R(a[2]*1.7)*6.283]));else{I(new THREE.CylinderGeometry(.5,.75,6.4,8),std('#4a3a2a',.95),trk);I(new THREE.SphereGeometry(1,10,8),std('#ffffff',.9),crw,true);}
 // ---- lampu jalan putih melengkung ke arah jalan ----
 const lc=new THREE.CatmullRomCurve3([[0,0],[0,5.5],[.25,8.3],[1.5,9.5],[3.4,9.9],[5,9.8]].map(p=>new THREE.Vector3(p[0],p[1],0))),lp=[],lh=[];
 for(let d=12;d<L;d+=30){lp.push([-14.9,0,d]);lh.push([-9.9,9.72,d]);pole(-14.9,d);const sp=new THREE.Sprite(sprM);sp.scale.set(7,7,1);sp.position.set(-9.9,9.5,-d);G.add(sp)}
@@ -1295,7 +1308,7 @@ const ps=[],pc=[],pb=[];for(let d=20;d<L+60;d+=35){ps.push([12.2,4.2,d]);pc.push
 I(new THREE.BoxGeometry(2.4,8.4,2.2),conc,ps);I(new THREE.BoxGeometry(6.6,1.2,2.8),conc,pc);I(new THREE.BoxGeometry(3,1.3,2.6),conc,pb);
 // dek kedua lebih rendah di kejauhan kanan + pohon di bawahnya
 B(32,1.4,DL,conc,56,7.2,L/2);const p2=[];for(let d=10;d<L+80;d+=30)p2.push([44,3.2,d]);I(new THREE.BoxGeometry(1.8,6.4,1.8),conc,p2);
-const tr2=[];for(let d=6;d<L;d+=13)tr2.push([31+R(d)*6,3.2+R(d+1)*1.5,d,3.2,3,3.2,0,R(d+3)>.5?'#2a6e2c':'#1f5a2a']);I(new THREE.SphereGeometry(1,10,8),std('#ffffff',.9),tr2,true);
+const tr2=[];for(let d=6;d<L;d+=13)tr2.push([31+R(d)*6,3.2+R(d+1)*1.5,d,3.2,3,3.2,0,R(d+3)>.5?'#2a6e2c':'#1f5a2a']);if(window.treeBatch)treeBatch(G,tr2.map(a=>[a[0],.02,-a[2],5+R(a[2]+9)*.9,R(a[2]*2.3)*6.283]));else I(new THREE.SphereGeometry(1,10,8),std('#ffffff',.9),tr2,true);
 // ---- rambu: JALAN TOL MASUK (hijau), rambu biru panah, portal ----
 const gs=(txt1,txt2)=>ctex(256,96,(g,w,h)=>{g.fillStyle='#0b7a3e';g.fillRect(0,0,w,h);g.strokeStyle='#fff';g.lineWidth=4;g.strokeRect(4,4,w-8,h-8);g.fillStyle='#fff';g.textAlign='center';g.font='bold 30px sans-serif';g.fillText(txt1,w/2+14,42);g.font='bold 26px sans-serif';g.fillText(txt2,w/2+14,78);g.beginPath();g.moveTo(26,12);g.lineTo(40,30);g.lineTo(32,30);g.lineTo(32,48);g.lineTo(20,48);g.lineTo(20,30);g.lineTo(12,30);g.fill()},1,1);
 const sb=(w,h,t,x,y,d)=>{B(w,h,.15,[std('#444'),std('#444'),std('#444'),std('#444'),new THREE.MeshBasicMaterial({map:t}),std('#444')],x,y,d)};
