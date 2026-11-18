@@ -84,31 +84,14 @@ jobs:
               }
           }
           JAVA
-      - name: Siapkan keystore (pakai secret kalau valid, kalau tidak buat baru)
+      - name: Pakai keystore tetap
         env:
           KS_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
         run: |
+          if [ -z "$KS_B64" ]; then echo "::error::Secret DEBUG_KEYSTORE_B64 belum diisi"; exit 1; fi
           mkdir -p ~/.android
-          OK=0
-          if [ -n "$KS_B64" ]; then
-            echo "$KS_B64" | tr -d '[:space:]' | base64 -d > ~/.android/debug.keystore 2>/dev/null || true
-            if keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey >/dev/null 2>&1; then
-              OK=1
-              echo "Keystore dari secret VALID, dipakai."
-            else
-              echo "::warning::Keystore dari secret TIDAK valid (alias/password salah atau file rusak). Membuat keystore sementara."
-            fi
-          else
-            echo "::warning::Secret DEBUG_KEYSTORE_B64 kosong. Membuat keystore sementara."
-          fi
-          if [ "$OK" = "0" ]; then
-            rm -f ~/.android/debug.keystore
-            keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android \
-              -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
-              -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-            echo "::warning::Pakai keystore sementara: update ke versi baru harus uninstall dulu."
-          fi
-          keytool -list -v -keystore ~/.android/debug.keystore -storepass android | grep -E "Alias|Signature algorithm|Valid|Key"
+          echo "$KS_B64" | tr -d '[:space:]' | base64 -d > ~/.android/debug.keystore
+          keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey || { echo "::error::Keystore di secret tidak valid"; exit 1; }
       - name: Build APK
         run: |
           cd android
