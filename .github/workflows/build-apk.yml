@@ -101,4 +101,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk onar-simulator.apk
-          gh release create "v${{ github.run_number }}" onar-simulator.apk --repo "${{ github.repository }}" --title "Onar Simulator v${{ github.run_number }}" --notes "Unduh onar-simulator.apk lalu pasang di Android."
+          SIG=$(keytool -printcert -jarfile onar-simulator.apk | grep "SHA256:" | head -1 | sed 's/^[[:space:]]*//')
+          echo "Tanda tangan APK: $SIG"
+          gh release create "v${{ github.run_number }}" onar-simulator.apk --repo "${{ github.repository }}" --title "Onar Simulator v${{ github.run_number }}" --notes "Unduh onar-simulator.apk lalu pasang di Android. Tanda tangan (harus sama di semua versi): $SIG"
