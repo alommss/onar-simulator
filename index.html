@@ -395,7 +395,7 @@ button.homeVersion{font-family:inherit;cursor:pointer;touch-action:manipulation;
 .mdlBtn.pri{background:linear-gradient(180deg,#ffb84d,#f08a22);color:#1a1006;border-color:#ffd18a}
 #unIn{width:100%;box-sizing:border-box;min-height:46px;border-radius:12px;border:1px solid #ffffff3a;background:#070912;color:#fff;padding:0 14px;font:700 16px system-ui,sans-serif;outline:none}
 #unIn:focus{border-color:#ffb020}
-.mpIn{width:100%;box-sizing:border-box;min-height:46px;border-radius:12px;border:1px solid #ffffff3a;background:#070912;color:#fff;padding:0 14px;font:700 16px system-ui,sans-serif;outline:none;margin-top:10px}.mpIn:focus{border-color:#ffb020}.mpSt{min-height:16px;margin-top:10px;font-size:12px;color:#ffb3a8}#mpRooms .srv{margin-top:8px;min-height:46px}#mpRooms small,#mpS1 small,#mpS2 small{font-size:11px;opacity:.7;letter-spacing:.5px}#mpNew{margin-top:10px}#mpS2{margin-top:10px}
+.mpIn{width:100%;box-sizing:border-box;min-height:46px;border-radius:12px;border:1px solid #ffffff3a;background:#070912;color:#fff;padding:0 14px;font:700 16px system-ui,sans-serif;outline:none;margin-top:10px}.mpIn:focus{border-color:#ffb020}.mpSt{min-height:16px;margin-top:10px;font-size:12px;color:#ffb3a8}#mpRooms .srv{margin-top:8px;min-height:46px}#mpRooms small{font-size:11px;opacity:.7;letter-spacing:.5px}#mpS1 small,#mpS2 small{flex:none;margin-left:auto;padding:6px 10px;border-radius:999px;background:#0b1f18;border:1px solid #5fe3a566;color:#7dffc0;font:800 12px/1 system-ui,sans-serif;letter-spacing:.8px;white-space:nowrap}#mpS1 small:empty,#mpS2 small:empty{display:none}#mpNew{margin-top:10px}#mpS2{margin-top:10px}
 @media (orientation:landscape) and (max-height:520px){
  #hON{min-height:38px;padding:0 16px;font-size:11px;margin-bottom:12px}
  #hUN{min-height:34px;font-size:12px}
@@ -2485,7 +2485,7 @@ window.ONL=(function(){
    hud=document.createElement('div');hud.style.cssText='position:fixed;left:'+sa+';top:calc(182px + '+st0+');z-index:6;display:flex;gap:8px;align-items:center;pointer-events:none';
    hbd=document.createElement('div');hbd.style.cssText='padding:6px 10px;border-radius:10px;background:#0b1f18cc;border:1px solid #5fe3a566;color:#7dffc0;font:800 11px/1 system-ui,sans-serif;letter-spacing:1px';hbd.textContent='● ONLINE · 1 pemain';
    const cb=document.createElement('button');cb.type='button';cb.textContent='💬 CHAT';cb.style.cssText='pointer-events:auto;padding:6px 11px;border-radius:10px;background:#101626cc;border:1px solid #ffffff44;color:#fff;font:800 11px/1 system-ui,sans-serif;letter-spacing:1px;touch-action:manipulation';
-   cb.onclick=()=>{cbar.style.display='flex';cin.focus()};hud.append(hbd,cb);document.body.appendChild(hud);
+   cb.onclick=()=>{cbar.style.display='flex';cin.focus()};hud.append(cb);document.body.appendChild(hud);
    clog=document.createElement('div');clog.style.cssText='position:fixed;left:'+sa+';top:calc(218px + '+st0+');z-index:6;pointer-events:none';document.body.appendChild(clog);
    cbar=document.createElement('div');cbar.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:30;display:none;gap:8px;width:min(92vw,460px);padding:8px;border-radius:14px;background:#0e1220f0;border:1px solid #ffffff3a;box-sizing:border-box';
    cin=document.createElement('input');cin.type='text';cin.maxLength=60;cin.placeholder='Ketik pesan…';cin.autocomplete='off';cin.style.cssText='flex:1;min-width:0;min-height:40px;border-radius:10px;border:1px solid #ffffff3a;background:#070912;color:#fff;padding:0 12px;font:600 15px system-ui,sans-serif;outline:none';
@@ -2593,7 +2593,7 @@ setUN();
     b.children[1].textContent=(x.lock?'\uD83D\uDD12 ':'')+x.name;b.children[2].textContent=x.count+' pemain';
     b.addEventListener('click',()=>{if(x.lock){pend=x;$q('pwN').textContent=x.name;$q('pwI').value='';$q('pwSt').textContent='';on('mpPw');setTimeout(()=>$q('pwI').focus(),60)}else go(()=>ONL.joinRoom(x.key,''),setS)});box.appendChild(b)})}catch(e){console.error(e)}}
  async function loadCounts(){for(const [id,room] of [['mpS1','server1'],['mpS2','server2']]){const el=$q(id).querySelector('small');if(!el)continue;el.textContent='…';
-   try{const n=await ONL.count(room);el.textContent=n+' pemain'}catch(e){console.error(e);el.textContent=''}}}
+   try{const n=await ONL.count(room);el.textContent='● '+n+' pemain'}catch(e){console.error(e);el.textContent='?'}}}
  window.mpOpen=()=>{setS('');on('mpScr');loadRooms();loadCounts()};
  tapHome('hMP',()=>window.mpOpen());
  tapHome('mpS1',()=>go(()=>ONL.connect().then(()=>ONL.join('server1')),setS));
