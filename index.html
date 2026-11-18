@@ -395,7 +395,7 @@ button.homeVersion{font-family:inherit;cursor:pointer;touch-action:manipulation;
 .mdlBtn.pri{background:linear-gradient(180deg,#ffb84d,#f08a22);color:#1a1006;border-color:#ffd18a}
 #unIn{width:100%;box-sizing:border-box;min-height:46px;border-radius:12px;border:1px solid #ffffff3a;background:#070912;color:#fff;padding:0 14px;font:700 16px system-ui,sans-serif;outline:none}
 #unIn:focus{border-color:#ffb020}
-.mpIn{width:100%;box-sizing:border-box;min-height:46px;border-radius:12px;border:1px solid #ffffff3a;background:#070912;color:#fff;padding:0 14px;font:700 16px system-ui,sans-serif;outline:none;margin-top:10px}.mpIn:focus{border-color:#ffb020}.mpSt{min-height:16px;margin-top:10px;font-size:12px;color:#ffb3a8}#mpRooms .srv{margin-top:8px;min-height:46px}#mpRooms small{font-size:11px;opacity:.7;letter-spacing:.5px}#mpNew{margin-top:10px}#mpS2{margin-top:10px}
+.mpIn{width:100%;box-sizing:border-box;min-height:46px;border-radius:12px;border:1px solid #ffffff3a;background:#070912;color:#fff;padding:0 14px;font:700 16px system-ui,sans-serif;outline:none;margin-top:10px}.mpIn:focus{border-color:#ffb020}.mpSt{min-height:16px;margin-top:10px;font-size:12px;color:#ffb3a8}#mpRooms .srv{margin-top:8px;min-height:46px}#mpRooms small,#mpS1 small,#mpS2 small{font-size:11px;opacity:.7;letter-spacing:.5px}#mpNew{margin-top:10px}#mpS2{margin-top:10px}
 @media (orientation:landscape) and (max-height:520px){
  #hON{min-height:38px;padding:0 16px;font-size:11px;margin-bottom:12px}
  #hUN{min-height:34px;font-size:12px}
@@ -510,7 +510,7 @@ button.homeVersion{font-family:inherit;cursor:pointer;touch-action:manipulation;
   </div>
 </div>
 <div class="mdl" id="onScr"><div class="mdlBox"><h2>ONLINE</h2><p>Pilih server</p><button class="srv" id="srv1" type="button"><i></i><span>SERVER 1</span></button><div id="onSt" style="min-height:16px;margin-top:10px;font-size:12px;color:#ffffffb8"></div><div class="mdlRow"><button class="mdlBtn" id="onClose" type="button">TUTUP</button></div></div></div>
-<div class="mdl" id="mpScr"><div class="mdlBox"><h2>MULTIPLAYER</h2><p>Pilih server atau buat room sendiri</p><button class="srv" id="mpS1" type="button"><i></i><span>SERVER 1</span></button><button class="srv" id="mpS2" type="button"><i></i><span>SERVER 2</span></button><button class="srv" id="mpNew" type="button"><i></i><span>BUAT ROOM</span></button><div id="mpRooms"></div><div id="mpSt" class="mpSt"></div><div class="mdlRow"><button class="mdlBtn" id="mpClose" type="button">TUTUP</button></div></div></div>
+<div class="mdl" id="mpScr"><div class="mdlBox"><h2>MULTIPLAYER</h2><p>Pilih server atau buat room sendiri</p><button class="srv" id="mpS1" type="button"><i></i><span>SERVER 1</span><small></small></button><button class="srv" id="mpS2" type="button"><i></i><span>SERVER 2</span><small></small></button><button class="srv" id="mpNew" type="button"><i></i><span>BUAT ROOM</span></button><div id="mpRooms"></div><div id="mpSt" class="mpSt"></div><div class="mdlRow"><button class="mdlBtn" id="mpClose" type="button">TUTUP</button></div></div></div>
 <div class="mdl" id="mpMk"><div class="mdlBox"><h2>BUAT ROOM</h2><p>Isi nama room. Password boleh dikosongkan.</p><input id="mkN" class="mpIn" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nama room"><input id="mkP" class="mpIn" type="password" maxlength="20" autocomplete="new-password" placeholder="Password"><div id="mkSt" class="mpSt"></div><div class="mdlRow"><button class="mdlBtn" id="mkCancel" type="button">BATAL</button><button class="mdlBtn pri" id="mkGo" type="button">BUAT</button></div></div></div>
 <div class="mdl" id="mpPw"><div class="mdlBox"><h2>ROOM TERKUNCI</h2><p id="pwN"></p><input id="pwI" class="mpIn" type="password" maxlength="20" autocomplete="off" placeholder="Password"><div id="pwSt" class="mpSt"></div><div class="mdlRow"><button class="mdlBtn" id="pwCancel" type="button">BATAL</button><button class="mdlBtn pri" id="pwGo" type="button">MASUK</button></div></div></div>
 <div class="mdl" id="unScr"><div class="mdlBox"><h2>USERNAME</h2><p>Nama yang tampil di game (maks. 16 karakter)</p><input id="unIn" type="text" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Masukkan username"><div class="mdlRow"><button class="mdlBtn" id="unCancel" type="button">BATAL</button><button class="mdlBtn pri" id="unSave" type="button">SIMPAN</button></div></div></div>
@@ -532,7 +532,7 @@ let flip=false; // model glTF umumnya menghadap +Z, game ini maju ke -Z
 const DIST=500;
 const gl=document.getElementById('gl'),$=id=>document.getElementById(id);
 const IS_ANDROID=/Android/i.test(navigator.userAgent||'');
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',precision:'highp'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
+const renderer=new THREE.WebGLRenderer({antialias:!(()=>{try{const o=JSON.parse(localStorage.getItem('dmGfx')||'null');return !!o&&o.q==='rendah'}catch(e){return false}})(),powerPreference:'high-performance',precision:'highp'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
 renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
 gl.appendChild(renderer.domElement);const MAXA=renderer.capabilities.getMaxAnisotropy();
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x070914);scene.fog=new THREE.FogExp2(0x0a0c1c,.0055);
@@ -546,9 +546,10 @@ rs();
    Normal = tampilan game yang sekarang (resolusi maks 1.75x, efek blur gerak). Tinggi = Normal + bayangan, pantulan body motor, tekstur detail, bangunan hidup (resolusi maks 2x).
    Resolusi 0-100 = 40%..100% dari batas kualitas. Selama belum disentuh pemain, auto-turun resolusi (qAdapt) tetap jalan seperti dulu. */
 const GFX={q:'normal',res:100,user:false,blur:true};var hqPR=1;
-try{const o=JSON.parse(localStorage.getItem('dmGfx')||'null');if(o&&typeof o==='object'){if(o.q==='normal'||o.q==='tinggi')GFX.q=o.q;if(typeof o.res==='number'&&o.res>=0&&o.res<=100)GFX.res=Math.round(o.res);GFX.user=!!o.user}}catch(e){}
-function gfxCeil(){const d=devicePixelRatio||1;return GFX.q==='normal'?Math.min(d,1.75):Math.min(d,1.5)}
-function gfxApply(){GFX.blur=true;const t=(GFX.user?gfxCeil()*(.4+.6*GFX.res/100):Math.min(devicePixelRatio||1,1.75))*(GFX.q==='tinggi'?hqPR:1);renderer.setPixelRatio(t);try{qPR=t}catch(e){}rs();if(window.__hqReady)hqApply()}
+try{const o=JSON.parse(localStorage.getItem('dmGfx')||'null');if(o&&typeof o==='object'){if(o.q==='rendah'||o.q==='normal'||o.q==='tinggi')GFX.q=o.q;if(typeof o.res==='number'&&o.res>=0&&o.res<=100)GFX.res=Math.round(o.res);GFX.user=!!o.user}}catch(e){}
+function gfxCeil(){const d=devicePixelRatio||1;return GFX.q==='rendah'?Math.min(d,.9):GFX.q==='normal'?Math.min(d,1.75):Math.min(d,1.5)}
+function gfxLow(){const lo=GFX.q==='rendah';try{cam.far=lo?900:7000;cam.updateProjectionMatrix();scene.fog.density=lo?.0075:.0055}catch(e){}}
+function gfxApply(){GFX.blur=GFX.q!=='rendah';gfxLow();const t=(GFX.user?gfxCeil()*(.4+.6*GFX.res/100):Math.min(devicePixelRatio||1,1.75))*(GFX.q==='tinggi'?hqPR:1);renderer.setPixelRatio(t);try{qPR=t}catch(e){}rs();if(window.__hqReady)hqApply()}
 function gfxSet(o){Object.assign(GFX,o);GFX.user=true;try{localStorage.setItem('dmGfx',JSON.stringify({q:GFX.q,res:GFX.res,user:true}))}catch(e){}gfxApply()}
 if(GFX.user)gfxApply();
 scene.add(new THREE.HemisphereLight(0x6677aa,0x181820,.7));
@@ -913,7 +914,7 @@ function fxResize(w,h){if(!fxReady)return;FW=w;FH=h;
  if(!RT){const o={minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat};
   RT=renderer.capabilities.isWebGL2&&THREE.WebGLMultisampleRenderTarget?new THREE.WebGLMultisampleRenderTarget(tw,th,o):new THREE.WebGLRenderTarget(tw,th,o);RT.texture.encoding=THREE.sRGBEncoding;if('samples' in RT)RT.samples=Math.min(4,renderer.capabilities.maxSamples||4)}
  else RT.setSize(tw,th);
- const pr=GFX.q==='tinggi'?1:Math.min(devicePixelRatio||1,2);fx.width=w*pr|0;fx.height=h*pr|0;fc.setTransform(pr,0,0,pr,0,0)}
+ const pr=(GFX.q==='tinggi'||GFX.q==='rendah')?1:Math.min(devicePixelRatio||1,2);fx.width=w*pr|0;fx.height=h*pr|0;fc.setTransform(pr,0,0,pr,0,0)}
 const LN=[];for(let i=0;i<64;i++)LN.push({a:Math.random()*6.283,r:Math.random(),l:Math.random(),w:Math.random()});
 /* GARIS NGEBUT 3D: garis-garis angin hidup di dunia (bukan radial di tengah layar), sejajar arah gerak motor yang dihitung dari perpindahan nyata.
    Jadi dari sudut kamera mana pun (samping, depan, belakang, atas) garisnya tetap searah gerakan dan punya perspektif. */
@@ -2426,7 +2427,7 @@ window.ONL=(function(){
  function voices(){if(!eok())return;const L=ow.foot?wk:ow,ar=[];
   for(const r of pl.values()){r.dist=Math.hypot(r.x-L.x,r.z-L.z);if(r.dist<130)ar.push(r);else if(r.vc&&!r.vc.muted)muteV(r.vc)}
   ar.sort((a,b)=>a.dist-b.dist);cam.getWorldDirection(_cd);const fx=_cd.x,fz=_cd.z,fl=Math.hypot(fx,fz)||1;
-  ar.forEach((r,i)=>{if(i>=4){if(r.vc&&!r.vc.muted)muteV(r.vc);return}
+  ar.forEach((r,i)=>{if(i>=(GFX.q==='rendah'?2:4)){if(r.vc&&!r.vc.muted)muteV(r.vc);return}
    if(!r.vc)r.vc=newVoice();const V=r.vc;V.muted=false;const d=r.dist;
    const ag=d<=3?1:Math.max(0,Math.min(1,3.5/(3.5+(d-3)*1.1)));V.out.gain.setTargetAtTime(ag*.85,AC.currentTime,.08);
    if(V.pan){const dx=r.x-cam.position.x,dz=r.z-cam.position.z,dd=Math.hypot(dx,dz)||1;V.pan.pan.setTargetAtTime(Math.max(-.85,Math.min(.85,((-fz*dx+fx*dz)/fl)/dd)),AC.currentTime,.1)}
@@ -2504,6 +2505,7 @@ window.ONL=(function(){
    const sn=await D.get(mr);if(sn.exists())throw Object.assign(new Error('Nama room sudah dipakai, coba nama lain.'),{code:'room-exists'});
    await D.set(mr,{n:name,pw:phash(key,pw),o:uid,t:D.serverTimestamp()});ownRoom=key;try{D.onDisconnect(mr).remove()}catch(e){}
    await this.join(key)},
+  async count(room){await this.connect();const sn=await D.get(D.ref(db,'rooms/'+room+'/players'));return sn.numChildren()},
   async listRooms(){await this.connect();const sn=await D.get(D.ref(db,'rooms')),out=[];
    sn.forEach(c=>{const m=c.child('meta').val();if(m&&String(c.key).indexOf('r_')===0)out.push({key:c.key,name:String(m.n||c.key).slice(0,20),lock:!!m.pw,count:c.child('players').numChildren()})});return out},
   async joinRoom(key,pw){await this.connect();const sn=await D.get(D.ref(db,'rooms/'+key+'/meta'));
@@ -2590,7 +2592,9 @@ setUN();
    r.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='srv';b.innerHTML='<i></i><span></span><small></small>';
     b.children[1].textContent=(x.lock?'\uD83D\uDD12 ':'')+x.name;b.children[2].textContent=x.count+' pemain';
     b.addEventListener('click',()=>{if(x.lock){pend=x;$q('pwN').textContent=x.name;$q('pwI').value='';$q('pwSt').textContent='';on('mpPw');setTimeout(()=>$q('pwI').focus(),60)}else go(()=>ONL.joinRoom(x.key,''),setS)});box.appendChild(b)})}catch(e){console.error(e)}}
- window.mpOpen=()=>{setS('');on('mpScr');loadRooms()};
+ async function loadCounts(){for(const [id,room] of [['mpS1','server1'],['mpS2','server2']]){const el=$q(id).querySelector('small');if(!el)continue;el.textContent='…';
+   try{const n=await ONL.count(room);el.textContent=n+' pemain'}catch(e){console.error(e);el.textContent=''}}}
+ window.mpOpen=()=>{setS('');on('mpScr');loadRooms();loadCounts()};
  tapHome('hMP',()=>window.mpOpen());
  tapHome('mpS1',()=>go(()=>ONL.connect().then(()=>ONL.join('server1')),setS));
  tapHome('mpS2',()=>go(()=>ONL.connect().then(()=>ONL.join('server2')),setS));
@@ -2702,17 +2706,18 @@ function engineSound(dt){
 function showSettings(from,tab){const fg=from==='game';if(fg)hideHome();ov.style.background=fg?'':'#05060d73';ov.style.display='flex';tab=tab||'g';
  const row=(id,t,v)=>'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>'+t+'</span><span id="'+id+'v">'+Math.round(v*100)+'%</span></div><input id="'+id+'" type="range" min="0" max="100" value="'+Math.round(v*100)+'" style="width:100%;height:32px;accent-color:#ffb020"></div>';
  const seg=(id,t,on)=>'<button id="'+id+'" class="'+(on?'on':'')+'">'+t+'</button>';
- const D={normal:'Tampilan standar game seperti sekarang.',tinggi:'Tekstur lebih realistis, bayangan dinamis, pantulan body motor, bangunan lebih hidup (jendela berkedip, lampu atap, LED), bintang & bulan, lampu depan motor. Sudah dioptimalkan agar ringan; beban otomatis diturunkan bila HP terasa lag.'};
+ const D={rendah:'Untuk HP kentang: resolusi turun, efek blur gerak mati, jarak pandang lebih pendek, suara motor pemain lain dikurangi. Anti-alias (tepi halus) baru mati setelah game dibuka ulang.',normal:'Tampilan standar game seperti sekarang.',tinggi:'Tekstur lebih realistis, bayangan dinamis, pantulan body motor, bangunan lebih hidup (jendela berkedip, lampu atap, LED), bintang & bulan, lampu depan motor. Sudah dioptimalkan agar ringan; beban otomatis diturunkan bila HP terasa lag.'};
  const side='<div class="stgSide"><button id="stG" type="button" class="stgT'+(tab==='g'?' on':'')+'">GRAFIK</button><button id="stV" type="button" class="stgT'+(tab==='v'?' on':'')+'">VOLUME</button><button id="stP" type="button" class="stgT'+(tab==='p'?' on':'')+'">PROFILE</button></div>';
  const pane=tab==='g'
-  ?'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Kualitas grafik</span></div><div class="gSegs">'+seg('gqN','NORMAL',GFX.q==='normal')+seg('gqT','TINGGI',GFX.q==='tinggi')+'</div><p id="gqD" style="font-size:12px;opacity:.7;margin:8px 0 0"></p></div>'
+  ?'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Kualitas grafik</span></div><div class="gSegs">'+seg('gqR','RENDAH',GFX.q==='rendah')+seg('gqN','NORMAL',GFX.q==='normal')+seg('gqT','TINGGI',GFX.q==='tinggi')+'</div><p id="gqD" style="font-size:12px;opacity:.7;margin:8px 0 0"></p></div>'
    +'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Resolusi</span><span id="grv">'+GFX.res+'</span></div><input id="gr" type="range" min="0" max="100" value="'+GFX.res+'" style="width:100%;height:32px;accent-color:#ffb020"></div>'
   :tab==='p'
   ?'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Username</span></div><input id="pfN" class="stgIn" type="text" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Masukkan username"><p style="font-size:12px;opacity:.7;margin:8px 0 0">Nama yang tampil di game (maks. 16 karakter)</p><button id="pfS" type="button" class="gmB">SIMPAN</button></div>'
   :row('vm','Atur volume musik',MUS)+row('vg','Atur volume game',SND);
  card.innerHTML='<h1>PENGATURAN</h1><div class="stgWrap">'+side+'<div class="stgPane">'+pane+'</div></div><button id="stC" class="gmB">LANJUTKAN</button>';
  if(tab==='g'){
-  const sync=()=>{$('gqN').classList.toggle('on',GFX.q==='normal');$('gqT').classList.toggle('on',GFX.q==='tinggi');$('gqD').textContent=D[GFX.q]};sync();
+  const sync=()=>{$('gqR').classList.toggle('on',GFX.q==='rendah');$('gqN').classList.toggle('on',GFX.q==='normal');$('gqT').classList.toggle('on',GFX.q==='tinggi');$('gqD').textContent=D[GFX.q]};sync();
+  $('gqR').onclick=()=>{gfxSet({q:'rendah',res:Math.min(GFX.res,75)});$('gr').value=GFX.res;$('grv').textContent=GFX.res;sync();try{camToast('Grafik Rendah aktif. Buka ulang game agar anti-alias mati')}catch(e){}};
   $('gqN').onclick=()=>{gfxSet({q:'normal'});sync()};
   $('gqT').onclick=()=>{gfxSet({q:'tinggi'});sync()};
   let tm=0;$('gr').oninput=e=>{const v=Math.max(0,Math.min(100,+e.target.value|0));$('grv').textContent=v;clearTimeout(tm);tm=setTimeout(()=>gfxSet({res:v}),90)}
