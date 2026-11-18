@@ -2454,12 +2454,12 @@ window.ONL=(function(){
  function upsert(id,d){if(!d||typeof d.x!=='number'||typeof d.z!=='number')return;let r=pl.get(id);
   if(!r){const jac=JK[hash(id)%JK.length],vm=d.vm?1:0,b=makeBike(vm,jac);
    const w=new THREE.Group();w.visible=false;scene.add(w);
-   r={b,w,gw:null,vm,vmB:(vm&&MODG)?1:0,rd:b.obj.children.find(c=>c.name==='rider')||null,jac,n:null,lab:null,x:d.x,z:d.z,h:d.h||0,y:gpcH(d.x,d.z),tx:d.x,tz:d.z,ty:d.h||0,cx:d.wx==null?d.x:d.wx,cz:d.wz==null?d.z:d.wz,wx:d.x,wz:d.z,cwh:d.wh==null?(d.h||0):d.wh,twh:d.h||0,v:0,f:0,seen:0,ck:0,fl:1,fr:1,fph:0,s:0,sa:0,csa:0,bl:0,bk:0,pt:0,wp:0,cwp:0,rz:0,crz:0,su:0,rv:0,bn:0,cn:d.cn||0,pb:undefined,pv:undefined,bub:null,bt:0,ba:0,bm:0,ea:0,vc:null,th:0,rp:1250,dr:0,dist:999};pl.set(id,r)}
+   r={b,w,gw:null,vm,vmB:(vm&&MODG)?1:0,rd:b.obj.children.find(c=>c.name==='rider')||null,jac,n:null,lab:null,x:d.x,z:d.z,h:d.h||0,y:gpcH(d.x,d.z),tx:d.x,tz:d.z,ty:d.h||0,cx:d.wx==null?d.x:d.wx,cz:d.wz==null?d.z:d.wz,wx:d.x,wz:d.z,cwh:d.wh==null?(d.h||0):d.wh,twh:d.h||0,v:0,f:0,seen:0,ck:0,fl:1,fr:1,fph:0,s:0,sa:0,csa:0,bl:0,bk:0,pt:0,wp:0,cwp:0,rz:0,crz:0,su:0,rv:0,bn:0,cn:d.cn||0,pb:undefined,pv:undefined,bub:null,bt:0,ba:0,bm:0,ea:0,vc:null,th:0,rp:1250,dr:0,hy:0,chy:0,dist:999};pl.set(id,r)}
   {const hx=/^#[0-9a-f]{6}$/i,pb=hx.test(d.pb||'')?d.pb:null,pv=hx.test(d.pv||'')?d.pv:null;
    if(r.pb!==pb||r.pv!==pv){r.pb=pb;r.pv=pv;const sv=PAINT;PAINT={b:pb,v:pv};try{paintApply(r.b.obj.children[0])}catch(e){console.error('ONL paint',e)}finally{PAINT=sv}}}
   {r.vm=d.vm?1:0;syncVeh(r)}
   if((d.cn||0)!==r.cn){r.cn=d.cn||0;if(d.cm)onMsg(r,String(d.cm).slice(0,60))}
-  r.seen=performance.now();r.tx=d.x;r.tz=d.z;r.ty=d.h||0;r.f=d.f?1:0;r.wx=d.wx==null?d.x:d.wx;r.wz=d.wz==null?d.z:d.wz;r.twh=d.wh==null?r.ty:d.wh;r.v=d.v||0;r.wp=d.wp||0;r.rz=d.rz||0;r.su=d.su?1:0;r.rv=d.rv||0;r.bn=d.bn?1:0;r.th=d.th||0;r.rp=d.rp||1250;r.dr=d.dr?1:0;r.sa=d.sa||0;
+  r.seen=performance.now();r.tx=d.x;r.tz=d.z;r.ty=d.h||0;r.f=d.f?1:0;r.wx=d.wx==null?d.x:d.wx;r.wz=d.wz==null?d.z:d.wz;r.twh=d.wh==null?r.ty:d.wh;r.v=d.v||0;r.wp=d.wp||0;r.rz=d.rz||0;r.su=d.su?1:0;r.rv=d.rv||0;r.bn=d.bn?1:0;r.th=d.th||0;r.rp=d.rp||1250;r.dr=d.dr?1:0;r.sa=d.sa||0;r.hy=Math.max(-1.4,Math.min(1.4,+d.hy||0));
   const nm=String(d.n||'Pemain').slice(0,16);if(r.n!==nm){r.n=nm;if(r.lab){if(r.lab.parent)r.lab.parent.remove(r.lab);r.lab.material.map.dispose();r.lab.material.dispose()}r.lab=label(nm);r.lab.position.set(0,2.5,0);r.b.obj.add(r.lab)}}
  function send(o){if(!on||!meRef)return;try{D.update(meRef,o).catch(()=>{})}catch(e){}}
  return{
@@ -2513,8 +2513,8 @@ window.ONL=(function(){
   send,
   tick(dt){
    if(!on)return;const now=performance.now();
-   if(now-sT>=100){sT=now;const f=ow.foot?1:0,x=+ow.x.toFixed(2),z=+ow.z.toFixed(2),h=+ow.h.toFixed(3),wx=f?+wk.x.toFixed(2):x,wz=f?+wk.z.toFixed(2):z,wh=f?+wk.h.toFixed(3):h,v=+(f?Math.abs(wk.v):P.v).toFixed(1),wp=+(WH.p||0).toFixed(3),rz=+(f?0:ow.steer*Math.min(.45,P.v/25)*.8).toFixed(3),su=(SUP.on&&!f)?1:0,rv=+((f?0:P.rv)||0).toFixed(2),bn=(P.burn&&!f)?1:0,th=+(f?0:(P.th||0)).toFixed(2),rp=Math.round((P.rpm||1250)/25)*25,dr=(typeof ENG!=='undefined'&&ENG.drod)?1:0,sa=+(f?0:(P.stA||0)).toFixed(3),key=[x,z,h,f,wx,wz,wh,wp,rz,su,rv,bn,th,rp,dr,sa].join();
-    if(key!==lk||now-lT>3000){lk=key;lT=now;send({n:USERNAME,vm:VEHSEL==='vario_mod'?1:0,pb:(PAINT&&PAINT.b)||'',pv:(PAINT&&PAINT.v)||'',x,z,h,v,f,wx,wz,wh,wp,rz,su,rv,bn,th,rp,dr,sa,t:D.serverTimestamp()})}}
+   if(now-sT>=100){sT=now;const f=ow.foot?1:0,x=+ow.x.toFixed(2),z=+ow.z.toFixed(2),h=+ow.h.toFixed(3),wx=f?+wk.x.toFixed(2):x,wz=f?+wk.z.toFixed(2):z,wh=f?+wk.h.toFixed(3):h,v=+(f?Math.abs(wk.v):P.v).toFixed(1),wp=+(WH.p||0).toFixed(3),rz=+(f?0:ow.steer*Math.min(.45,P.v/25)*.8).toFixed(3),su=(SUP.on&&!f)?1:0,rv=+((f?0:P.rv)||0).toFixed(2),bn=(P.burn&&!f)?1:0,th=+(f?0:(P.th||0)).toFixed(2),rp=Math.round((P.rpm||1250)/25)*25,dr=(typeof ENG!=='undefined'&&ENG.drod)?1:0,sa=+(f?0:(P.stA||0)).toFixed(3),hy=(!f&&pov)?+Math.max(-1.35,Math.min(1.35,Math.atan2(Math.sin(cyaw),Math.cos(cyaw)))).toFixed(2):0,key=[x,z,h,f,wx,wz,wh,wp,rz,su,rv,bn,th,rp,dr,sa,hy].join();
+    if(key!==lk||now-lT>3000){lk=key;lT=now;send({n:USERNAME,vm:VEHSEL==='vario_mod'?1:0,pb:(PAINT&&PAINT.b)||'',pv:(PAINT&&PAINT.v)||'',x,z,h,v,f,wx,wz,wh,wp,rz,su,rv,bn,th,rp,dr,sa,hy,t:D.serverTimestamp()})}}
    const L0=ow.foot?wk:ow,LX=L0.x,LZ=L0.z,k=Math.min(1,dt*10);
    for(const [id,r] of pl){
     if(now-r.seen>20000){drop(id);continue}
@@ -2543,8 +2543,8 @@ window.ONL=(function(){
      const rm=Math.max(0,Math.min(1,-r.rv/1.3));r.fd=r.fd?r.v<.7:r.v<.35;const up=r.cwp>.1||r.su;
      const tl=(!up&&!r.bn&&(r.fd||rm>.01))?1:0,tr=(!up&&(r.bn||r.fd||rm>.01))?1:0;
      r.fl+=(tl-r.fl)*Math.min(1,dt*10);r.fr+=(tr-r.fr)*Math.min(1,dt*10);r.fph+=Math.abs(r.rv)*dt/.5;r.ck+=(tg-r.ck)*Math.min(1,dt*7);
-     const sg=r.su?1:0;if(r.s<sg)r.s=Math.min(sg,r.s+dt/1.15);else if(r.s>sg)r.s=Math.max(sg,r.s-dt/.95);
-     if(u.k===undefined||Math.abs(r.ck-u.k)>.003||Math.abs(r.s-(u.s||0))>.0004||Math.abs(r.fl-(u.fl||0))>.004||Math.abs(r.fr-(u.fr||0))>.004||rm>.001||Math.abs(rm-(u.rm||0))>.001||Math.abs(r.csa-(u.sa||0))>.004){u.k=r.ck;u.s=r.s;u.fl=r.fl;u.fr=r.fr;u.rm=rm;u.sa=r.csa;u.str={a:r.csa,S:r.b.obj.children[0]&&r.b.obj.children[0].userData.S};u.pose(r.ck,r.s,{l:r.fl,r:r.fr,rv:rm,ph:r.fph})}}}
+     r.chy+=(r.hy-r.chy)*Math.min(1,dt*10);const sg=r.su?1:0;if(r.s<sg)r.s=Math.min(sg,r.s+dt/1.15);else if(r.s>sg)r.s=Math.max(sg,r.s-dt/.95);
+     if(u.k===undefined||Math.abs(r.chy-(u.hy||0))>.02||Math.abs(r.ck-u.k)>.003||Math.abs(r.s-(u.s||0))>.0004||Math.abs(r.fl-(u.fl||0))>.004||Math.abs(r.fr-(u.fr||0))>.004||rm>.001||Math.abs(rm-(u.rm||0))>.001||Math.abs(r.csa-(u.sa||0))>.004){u.hy=r.chy;u.k=r.ck;u.s=r.s;u.fl=r.fl;u.fr=r.fr;u.rm=rm;u.sa=r.csa;u.str={a:r.csa,S:r.b.obj.children[0]&&r.b.obj.children[0].userData.S};u.pose(r.ck,r.s,{l:r.fl,r:r.fr,rv:rm,ph:r.fph})}}}
     r.cx+=(r.wx-r.cx)*k;r.cz+=(r.wz-r.cz)*k;r.w.visible=!!r.f;
     if(r.f){if(!r.gw&&!r.gwT){r.gwT=1;const g=mkGW();if(g){r.gw=g;r.w.add(g)}else{const bd=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,1,10),std(r.jac,.7)),hd=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),std('#e0b090',.7));bd.position.y=.65;hd.position.y=1.35;r.w.add(bd,hd)}}
      let dw=r.twh-r.cwh;dw=Math.atan2(Math.sin(dw),Math.cos(dw));r.cwh+=dw*k;r.w.position.set(r.cx,gpcH(r.cx,r.cz),r.cz);r.w.rotation.y=r.cwh;
@@ -3119,6 +3119,7 @@ async function varioFromBuf(buf){
   if(w>=0)me.position.sub(AX[w]);
   if(CPI.has(i))me.userData.cp=1;
   (Array.isArray(me.material)?me.material:[me.material]).forEach(tune);
+  {const mt=me.material;if(mt&&!Array.isArray(mt)&&mt.color&&mt.emissive){const nm=mt.name||'',key=/bodiputi/i.test(nm)?'b':(/^ruji/i.test(nm)?'v':'');if(key){me.userData.pk=key;me.userData.dc=mt.color.toArray();me.userData.de=mt.emissive.toArray();me.userData.dm=[mt.metalness,mt.roughness]}}} // REPAINT: tandai BODY & VELG
   if(me.parent)me.parent.remove(me);
   (w>=0?W[w]:g).add(me)});
  let tri=0;meshes.forEach(m=>{if(m.geometry&&m.geometry.index)tri+=m.geometry.index.count/3});VARIO_TRI=Math.round(tri);
@@ -3275,6 +3276,7 @@ function gRider(jac){
    if(spB&&sT>0)rotG(spB,new Q().setFromAxisAngle(X,.2*sT));
    if(B.Neck&&sT>0)rotG(B.Neck,new Q().setFromAxisAngle(X,.5*sT));
    rotG(B.Head,new Q().setFromAxisAngle(X,th*lr(.75,1,sT)-(B.Neck?.3:.0)*sT+(B.Neck?0:.15*sT)));
+   if(g.userData.hy)rotG(B.Head,new Q().setFromAxisAngle(new V(0,1,0),g.userData.hy)); // NENGOK: kepala berputar kiri/kanan sesuai arah pandang POV pemain
    const kc=Math.max(0,Math.min(1,k))*(1-sT); // 0..1 seberapa bungkuk
    // ---- KAKI: f={l,r,rv,ph} -> l/r = seberapa turun menapak aspal (kiri/kanan), rv = intensitas memundurkan motor, ph = fase langkah ----
    const F=f||{l:0,r:0,rv:0,ph:0};
@@ -3382,4 +3384,36 @@ const VARIO_FIX4_GZ_B64=__BIG[19];
 }catch(e){console.error('Vario fix4',e);try{varioStatus('Gagal: '+(e&&e.message||e))}catch(_){}}})();
 hqInit();
 gLoad();
-</script><script>if("serviceWorker"in navigator&&location.protocol.startsWith("http"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))</script></body></html>
+</script><script>if("serviceWorker"in navigator&&location.protocol.startsWith("http"))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))</script><script>
+/* ===== CEK UPDATE (khusus APK): kalau ada rilis baru di GitHub, tampilkan popup "Update sekarang" =====
+   Angka __BUILD__ diganti otomatis oleh GitHub Actions saat build APK (nomor build = nomor rilis, mis. v21 -> 21).
+   Di versi web angkanya tidak diganti, jadi pengecekan ini otomatis nonaktif. */
+(function(){
+ var BUILD='__BUILD__';
+ if(!/^\d+$/.test(BUILD))return;
+ var REPO='alommss/onar-simulator';
+ function popup(url){
+  var o=document.createElement('div');
+  o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);padding:20px;font-family:system-ui,sans-serif';
+  var c=document.createElement('div');
+  c.style.cssText='max-width:340px;width:100%;background:#10131f;border:1px solid #ffb02099;border-radius:16px;padding:22px 20px;text-align:center;color:#f4f1e8;box-shadow:0 10px 40px #000a';
+  c.innerHTML='<div style="font-size:19px;font-weight:800;margin-bottom:8px">Update tersedia</div><div style="font-size:13px;opacity:.8;line-height:1.5;margin-bottom:18px">Versi baru Onar Simulator sudah siap. Update sekarang supaya dapat fitur terbaru dan tetap cocok dengan pemain lain.</div>';
+  var b=document.createElement('button');b.type='button';b.textContent='UPDATE SEKARANG';
+  b.style.cssText='display:block;width:100%;padding:13px;border:0;border-radius:12px;background:#ffb020;color:#1a1204;font:800 14px system-ui,sans-serif;letter-spacing:1px;touch-action:manipulation';
+  b.onclick=function(){location.href=url};
+  var l=document.createElement('button');l.type='button';l.textContent='NANTI';
+  l.style.cssText='display:block;width:100%;margin-top:10px;padding:11px;border:0;border-radius:12px;background:transparent;color:#f4f1e8aa;font:700 13px system-ui,sans-serif;touch-action:manipulation';
+  l.onclick=function(){o.remove()};
+  c.appendChild(b);c.appendChild(l);o.appendChild(c);document.body.appendChild(o)}
+ function check(){
+  fetch('https://api.github.com/repos/'+REPO+'/releases/latest',{cache:'no-store'})
+   .then(function(r){return r.ok?r.json():null})
+   .then(function(j){
+    if(!j)return;
+    var n=parseInt(String(j.tag_name||'').replace(/\D/g,''),10);
+    if(!(n>+BUILD))return;
+    var a=(j.assets||[]).filter(function(x){return /\.apk$/i.test(x.name)})[0];
+    popup(a?a.browser_download_url:j.html_url)})
+   .catch(function(){})}
+ setTimeout(check,4000)})();
+</script></body></html>
