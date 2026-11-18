@@ -773,8 +773,9 @@ function hqFrame(c){
  _hqP.copy(_hqLx).multiplyScalar(a).addScaledVector(_hqLy,b).addScaledVector(_hqLz,d);
  HQ.sun.target.position.copy(_hqP);HQ.sun.position.copy(_hqP).addScaledVector(_hqLz,130);HQ.sun.target.updateMatrixWorld();HQ.sun.updateMatrixWorld();
  if(HQ.spot.parent!==P.obj){P.obj.add(HQ.spot);P.obj.add(HQ.spot.target)}
+ if(HQ.beam){if(HQ.beam.parent!==P.obj)P.obj.add(HQ.beam);let pv=false;try{pv=!!pov||(st==='ow'&&ow.foot)}catch(e){}HQ.beam.visible=!pv&&P.obj.visible}
  HQ.spot.visible=false; /* lampu sorot di tanah dimatikan: bayangan/cahaya di SPBU harus menetap, tidak ikut motor/kamera */
- HQ.stars.position.copy(c.position);HQ.moon.position.set(c.position.x-1500,c.position.y+1900,c.position.z-2300);
+ if(HQ.sky)HQ.sky.position.copy(c.position);HQ.stars.position.copy(c.position);HQ.moon.position.set(c.position.x-1500,c.position.y+1900,c.position.z-2300);
  if(T-HQ.ts>3||HQ.dirty){HQ.ts=T;HQ.dirty=false;hqScan()}
  HQ.blink.forEach(k=>{k.s.material.opacity=((T*.7+k.ph)%1)<.18?1:.06});
  HQ.leds.forEach(l=>l.m.color.setHSL((T*.04+l.ph)%1,.85,.55));
@@ -800,8 +801,9 @@ function hqApply(){
   HQ.blobG=new THREE.PlaneGeometry(1.2,2.4);HQ.blobM=new THREE.MeshBasicMaterial({map:HQ.blobT,transparent:true,depthWrite:false,opacity:.7});
   HQ.poolM=poolM.clone();HQ.poolM.opacity=.34;
   try{hqBuildTowers()}catch(e){console.error('hqTowers',e)}}
- HQ.sun.visible=on;HQ.sun.castShadow=on&&HQ.lv<3;HQ.spot.visible=false;HQ.stars.visible=on;HQ.moon.visible=on;
- if(HQ.hemi)HQ.hemi.intensity=on?.85:.7;
+ HQ.sun.visible=on;HQ.sun.castShadow=on&&HQ.lv<3;HQ.spot.visible=false;HQ.stars.visible=on;HQ.moon.visible=on;if(HQ.sky)HQ.sky.visible=on;
+ if(HQ.hemi){HQ.hemi.intensity=on?.85:.7;HQ.hemi.color.setHex(on?0x5a6fb0:0x6677aa);HQ.hemi.groundColor.setHex(on?0x2a2220:0x181820)}
+ renderer.toneMappingExposure=on?1.22:1.15;if(!on&&HQ.beam)HQ.beam.visible=false;
  HQ.sw.forEach(r=>{if(r.hq)r.mesh.material=on?r.hq:r.orig});
  HQ.deco.forEach(g=>g.visible=on);HQ.pools.forEach(p=>p.visible=on);
  if(on)hqScan();
@@ -823,6 +825,8 @@ function hqInit(){
   const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(pos,3));
   HQ.stars=new THREE.Points(sg,new THREE.PointsMaterial({color:0xdfe6ff,size:1.6,sizeAttenuation:false,transparent:true,opacity:.85,depthWrite:false,fog:false}));
   HQ.stars.frustumCulled=false;HQ.stars.visible=false;scene.add(HQ.stars);
+  try{HQ.sky=ultSky();scene.add(HQ.sky)}catch(e){console.error('sky',e)}
+  try{HQ.beam=ultBeam()}catch(e){console.error('beam',e)}
   const moon=new THREE.Group(),mg=new THREE.Sprite(glowM(0x9fb4ff)),mc=new THREE.Sprite(glowM(0xeef2ff));mg.scale.set(900,900,1);mc.scale.set(150,150,1);moon.add(mg);moon.add(mc);moon.visible=false;scene.add(moon);HQ.moon=moon;
   HQ.hemi=scene.children.find(c=>c.isHemisphereLight)||null;
   dragObjs.forEach(o=>HQ.dragSet.add(o));
@@ -974,6 +978,63 @@ function fxClear(){if(!O||!O.obj.visible||(st!=='race'&&st!=='done'))return;
  const g=fc.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,'#000');g.addColorStop(.6,'#000');g.addColorStop(1,'rgba(0,0,0,0)');
  fc.fillStyle=g;fc.beginPath();fc.arc(0,0,1,0,6.2832);fc.fill();fc.restore()}
 function curV(){try{if(st==='ow')return ow.foot?Math.abs(wk.v):P.v;return(st==='race'||st==='done')?P.v:0}catch(e){return 0}}
+/* ===== ULTRA REALISTIS (khusus Grafik Tinggi) =====
+   1) Langit malam bergradasi + cahaya kota di horizon (menggantikan warna polos).
+   2) Post-processing sinematik: bloom (lampu jalan, jendela, lampu motor berpendar), warna sinematik, vignette, chromatic aberration tipis, dither anti-banding.
+   Beban dijaga: bloom dihitung di resolusi 1/4. Governor (HQ.lv>=2) otomatis mematikan efek ini kalau HP lag; shader error -> efek mati sendiri.
+   Atur tampilan lewat ULT.K: th = ambang cahaya yang berpendar (naikkan = bloom lebih sedikit), bk = kekuatan bloom, vg = vignette, gr = grain halus (0 = mati), ca = chromatic aberration. */
+var ULT={ok:true,err:0,sc:null,q:null,mA:null,mB:null,mC:null,r1:null,r2:null,bw:0,bh:0,K:{th:.58,bk:.5,vg:.3,gr:.012,ca:.0035}};
+/* ===== PENCAHAYAAN ULTRA (Grafik Tinggi): cahaya bulan dingin + pantulan hangat lampu kota + berkas lampu depan volumetrik ===== */
+function ultBeam(){const h=16,g=new THREE.ConeGeometry(3.6,h,24,1,true);g.translate(0,-h/2,0);
+ const p=g.attributes.position,c=new Float32Array(p.count*3),k=new THREE.Color(0xffe6bd);
+ for(let i=0;i<p.count;i++){const f=Math.pow(Math.max(0,1+p.getY(i)/h),1.6)*.22;c[i*3]=k.r*f;c[i*3+1]=k.g*f;c[i*3+2]=k.b*f}
+ g.setAttribute('color',new THREE.BufferAttribute(c,3));g.rotateX(Math.PI/2-.06);
+ const m=new THREE.MeshBasicMaterial({vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide});
+ const s=new THREE.Mesh(g,m);s.position.set(0,.95,-.55);s.frustumCulled=false;s.visible=false;s.renderOrder=3;s.userData.noCast=1;return s}
+function ultSky(){
+ const m=new THREE.ShaderMaterial({side:THREE.BackSide,depthTest:false,depthWrite:false,fog:false,toneMapped:false,
+  vertexShader:'varying vec3 vD;void main(){vD=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'varying vec3 vD;void main(){float y=normalize(vD).y;vec3 zen=vec3(.010,.018,.050);vec3 mid=vec3(.040,.055,.125);vec3 hor=vec3(.20,.115,.105);vec3 gnd=vec3(.022,.024,.040);vec3 c=y>0.?mix(mix(hor,mid,smoothstep(0.,.16,y)),zen,smoothstep(.10,.70,y)):mix(hor*.30,gnd,smoothstep(0.,.25,-y));c+=vec3(.16,.075,.04)*exp(-abs(y)*16.)*.5;gl_FragColor=vec4(c,1.);}'});
+ const s=new THREE.Mesh(new THREE.SphereGeometry(3000,32,16),m);s.frustumCulled=false;s.renderOrder=-1000;s.visible=false;return s}
+function ultInit(){
+ const U=ULT,vs='varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}';
+ const mk=(fs,u)=>new THREE.ShaderMaterial({uniforms:u,vertexShader:vs,fragmentShader:fs,depthTest:false,depthWrite:false,toneMapped:false});
+ U.mA=mk('varying vec2 vUv;uniform sampler2D t;uniform vec2 px;uniform float th;void main(){vec3 c=(texture2D(t,vUv+px*vec2(-1.,-1.)).rgb+texture2D(t,vUv+px*vec2(1.,-1.)).rgb+texture2D(t,vUv+px*vec2(-1.,1.)).rgb+texture2D(t,vUv+px*vec2(1.,1.)).rgb)*.25;float l=max(max(c.r,c.g),c.b);gl_FragColor=vec4(c*smoothstep(th,th+.3,l),1.);}',
+  {t:{value:null},px:{value:new THREE.Vector2()},th:{value:U.K.th}});
+ U.mB=mk('varying vec2 vUv;uniform sampler2D t;uniform vec2 d;void main(){vec3 c=texture2D(t,vUv).rgb*.227027+(texture2D(t,vUv+d*1.3846).rgb+texture2D(t,vUv-d*1.3846).rgb)*.316216+(texture2D(t,vUv+d*3.2308).rgb+texture2D(t,vUv-d*3.2308).rgb)*.07027;gl_FragColor=vec4(c,1.);}',
+  {t:{value:null},d:{value:new THREE.Vector2()}});
+ U.mC=mk('varying vec2 vUv;uniform sampler2D t;uniform sampler2D b;uniform vec2 res;uniform float tm;uniform float bk;uniform float vg;uniform float gr;uniform float ca;'+
+  'float hs(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}'+
+  'void main(){vec2 d=vUv-.5;float r2=dot(d,d);vec2 o=d*r2*ca*4.;'+
+  'vec3 c=vec3(texture2D(t,vUv+o).r,texture2D(t,vUv).g,texture2D(t,vUv-o).b);'+
+  'c+=texture2D(b,vUv).rgb*bk;'+
+  'float l=dot(c,vec3(.2126,.7152,.0722));c=mix(vec3(l),c,1.07);c=(c-.4)*1.05+.4;'+
+  'c+=vec3(-.006,.003,.014)*(1.-smoothstep(0.,.5,l))+vec3(.012,.005,-.008)*smoothstep(.5,1.,l);'+
+  'c*=1.-vg*smoothstep(.12,.55,r2*1.6);'+
+  'c+=(hs(vUv*res+vec2(fract(tm*7.3)*91.7,fract(tm*3.1)*57.3))-.5)*gr;'+
+  'gl_FragColor=vec4(clamp(c,0.,1.),1.);}',
+  {t:{value:null},b:{value:null},res:{value:new THREE.Vector2(1,1)},tm:{value:0},bk:{value:U.K.bk},vg:{value:U.K.vg},gr:{value:U.K.gr},ca:{value:U.K.ca}});
+ U.q=new THREE.Mesh(new THREE.PlaneGeometry(2,2),U.mA);U.q.frustumCulled=false;U.sc=new THREE.Scene();U.sc.add(U.q)}
+function ultUse(){return ULT.ok&&GFX.q==='tinggi'&&HQ.on&&HQ.lv<2&&fxReady&&!!RT&&('samples' in RT)&&RT.samples>0}
+function ultRender(){
+ if(!ultUse()){renderer.render(scene,cam);return}
+ try{
+  const U=ULT;if(!U.sc)ultInit();
+  const W=RT.width,H=RT.height,bw=Math.max(2,W>>2),bh=Math.max(2,H>>2);
+  if(!U.r1||U.bw!==bw||U.bh!==bh){if(U.r1){U.r1.dispose();U.r2.dispose()}
+   const o={minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,depthBuffer:false,stencilBuffer:false};
+   U.r1=new THREE.WebGLRenderTarget(bw,bh,o);U.r2=new THREE.WebGLRenderTarget(bw,bh,o);U.bw=bw;U.bh=bh}
+  renderer.setRenderTarget(RT);renderer.render(scene,cam);
+  U.q.material=U.mA;U.mA.uniforms.t.value=RT.texture;U.mA.uniforms.px.value.set(1.5/W,1.5/H);U.mA.uniforms.th.value=U.K.th;
+  renderer.setRenderTarget(U.r1);renderer.render(U.sc,pC);
+  U.q.material=U.mB;
+  for(let i=0;i<2;i++){
+   U.mB.uniforms.t.value=U.r1.texture;U.mB.uniforms.d.value.set(1.2/bw,0);renderer.setRenderTarget(U.r2);renderer.render(U.sc,pC);
+   U.mB.uniforms.t.value=U.r2.texture;U.mB.uniforms.d.value.set(0,1.2/bh);renderer.setRenderTarget(U.r1);renderer.render(U.sc,pC)}
+  const u=U.mC.uniforms;u.t.value=RT.texture;u.b.value=U.r1.texture;u.res.value.set(W,H);u.tm.value=(performance.now()*.001)%97;
+  u.bk.value=U.K.bk;u.vg.value=U.K.vg;u.gr.value=U.K.gr;u.ca.value=U.K.ca;
+  U.q.material=U.mC;renderer.setRenderTarget(null);renderer.render(U.sc,pC)
+ }catch(e){ULT.err++;try{renderer.setRenderTarget(null)}catch(_){}console.error('ultra',e);if(ULT.err>2)ULT.ok=false;renderer.render(scene,cam)}}
 function draw(dt){
  if(santay()&&P&&P.v>17.2)P.v=Math.max(17.2,P.v-8*dt);
  riderPose(dt);burnPose(dt);engineSound(dt);wheelie(dt);povCam(dt);camBlend(dt);smoke(dt);rpmHud();
@@ -989,9 +1050,9 @@ function draw(dt){
    const px=cam.position.x,py=cam.position.y,pz=cam.position.z,rx=cam.rotation.x,ry=cam.rotation.y,rz=cam.rotation.z;
    cam.position.x+=r()*.05*a+r()*.012*sv;cam.position.y+=(r()*.05+Math.sin(t*90)*.012)*a+(r()*.012+Math.sin(t*63)*.004)*sv;cam.position.z+=r()*.05*a+r()*.01*sv;
    cam.rotation.x+=r()*.012*a+r()*.003*sv;cam.rotation.y+=r()*.012*a+r()*.003*sv;cam.rotation.z+=r()*.02*a+(r()*.004+Math.sin(t*47)*.0015)*sv;
-   cam.updateMatrixWorld(true);renderer.render(scene,cam);
+   cam.updateMatrixWorld(true);ultRender();
    cam.position.set(px,py,pz);cam.rotation.set(rx,ry,rz);cam.updateMatrixWorld(true)}
-  else renderer.render(scene,cam)}
+  else ultRender()}
  fxLines(dt)}
 fxReady=true;fxResize(gl.clientWidth,gl.clientHeight);
 
@@ -2706,7 +2767,7 @@ function engineSound(dt){
 function showSettings(from,tab){const fg=from==='game';if(fg)hideHome();ov.style.background=fg?'':'#05060d73';ov.style.display='flex';tab=tab||'g';
  const row=(id,t,v)=>'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>'+t+'</span><span id="'+id+'v">'+Math.round(v*100)+'%</span></div><input id="'+id+'" type="range" min="0" max="100" value="'+Math.round(v*100)+'" style="width:100%;height:32px;accent-color:#ffb020"></div>';
  const seg=(id,t,on)=>'<button id="'+id+'" class="'+(on?'on':'')+'">'+t+'</button>';
- const D={rendah:'Untuk HP kentang: resolusi turun, efek blur gerak mati, jarak pandang lebih pendek, suara motor pemain lain dikurangi. Anti-alias (tepi halus) baru mati setelah game dibuka ulang.',normal:'Tampilan standar game seperti sekarang.',tinggi:'Tekstur lebih realistis, bayangan dinamis, pantulan body motor, bangunan lebih hidup (jendela berkedip, lampu atap, LED), bintang & bulan, lampu depan motor. Sudah dioptimalkan agar ringan; beban otomatis diturunkan bila HP terasa lag.'};
+ const D={rendah:'Untuk HP kentang: resolusi turun, efek blur gerak mati, jarak pandang lebih pendek, suara motor pemain lain dikurangi. Anti-alias (tepi halus) baru mati setelah game dibuka ulang.',normal:'Tampilan standar game seperti sekarang.',tinggi:'Ultra realistis: langit malam bergradasi, bloom (lampu berpendar), warna sinematik + vignette, tekstur lebih realistis, bayangan dinamis, pantulan body motor, bangunan lebih hidup (jendela berkedip, lampu atap, LED), bintang & bulan, lampu depan motor. Sudah dioptimalkan agar ringan; beban otomatis diturunkan bila HP terasa lag.'};
  const side='<div class="stgSide"><button id="stG" type="button" class="stgT'+(tab==='g'?' on':'')+'">GRAFIK</button><button id="stV" type="button" class="stgT'+(tab==='v'?' on':'')+'">VOLUME</button><button id="stP" type="button" class="stgT'+(tab==='p'?' on':'')+'">PROFILE</button></div>';
  const pane=tab==='g'
   ?'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Kualitas grafik</span></div><div class="gSegs">'+seg('gqR','RENDAH',GFX.q==='rendah')+seg('gqN','NORMAL',GFX.q==='normal')+seg('gqT','TINGGI',GFX.q==='tinggi')+'</div><p id="gqD" style="font-size:12px;opacity:.7;margin:8px 0 0"></p></div>'
@@ -3402,13 +3463,13 @@ gLoad();
   o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);padding:20px;font-family:system-ui,sans-serif';
   var c=document.createElement('div');
   c.style.cssText='max-width:340px;width:100%;background:#10131f;border:1px solid #ffb02099;border-radius:16px;padding:22px 20px;text-align:center;color:#f4f1e8;box-shadow:0 10px 40px #000a';
-  c.innerHTML='<div style="font-size:19px;font-weight:800;margin-bottom:8px">Update tersedia</div><div style="font-size:13px;opacity:.8;line-height:1.5;margin-bottom:18px">Versi baru Onar Simulator sudah siap. Update sekarang supaya dapat fitur terbaru dan tetap cocok dengan pemain lain.</div>';
+  c.innerHTML='<div style="font-size:19px;font-weight:800;margin-bottom:8px">Update tersedia</div><div style="font-size:13px;opacity:.8;line-height:1.5;margin-bottom:18px">Versi baru Onar Simulator sudah siap. Update dulu supaya bisa lanjut main dan tetap cocok dengan pemain lain.</div>';
   var b=document.createElement('button');b.type='button';b.textContent='UPDATE SEKARANG';
   b.style.cssText='display:block;width:100%;padding:13px;border:0;border-radius:12px;background:#ffb020;color:#1a1204;font:800 14px system-ui,sans-serif;letter-spacing:1px;touch-action:manipulation';
   b.onclick=function(){location.href=url};
-  var l=document.createElement('button');l.type='button';l.textContent='NANTI';
+  var l=document.createElement('button');l.type='button';l.textContent='TUTUP APLIKASI';
   l.style.cssText='display:block;width:100%;margin-top:10px;padding:11px;border:0;border-radius:12px;background:transparent;color:#f4f1e8aa;font:700 13px system-ui,sans-serif;touch-action:manipulation';
-  l.onclick=function(){o.remove()};
+  l.onclick=function(){try{var C=window.Capacitor;if(C&&C.Plugins&&C.Plugins.App&&C.Plugins.App.exitApp){C.Plugins.App.exitApp();return}}catch(e){}try{window.close()}catch(e){}try{location.replace('about:blank')}catch(e){}};
   c.appendChild(b);c.appendChild(l);o.appendChild(c);document.body.appendChild(o)}
  function check(){
   fetch('https://api.github.com/repos/'+REPO+'/releases/latest',{cache:'no-store'})
