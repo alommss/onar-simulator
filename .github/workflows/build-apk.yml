@@ -31,7 +31,7 @@ jobs:
           sed -i "s/versionName \"1.0\"/versionName \"${{ github.run_number }}\"/" android/app/build.gradle
       - name: Layar landscape dan ikon
         run: |
-          sed -i 's/<activity/<activity android:screenOrientation="landscape"/' android/app/src/main/AndroidManifest.xml
+          sed -i '0,/<activity/s//<activity android:screenOrientation="landscape"/' android/app/src/main/AndroidManifest.xml
           rm -rf android/app/src/main/res/mipmap-anydpi-v26
           pip install pillow
           python3 - <<'PY'
@@ -84,23 +84,46 @@ jobs:
               }
           }
           JAVA
-      - name: Pakai keystore tetap (supaya update bisa menimpa versi lama)
+      - name: Siapkan keystore (pakai secret kalau valid, kalau tidak buat baru)
         env:
           KS_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
         run: |
-          if [ -z "$KS_B64" ]; then echo "Secret DEBUG_KEYSTORE_B64 belum diisi"; exit 1; fi
           mkdir -p ~/.android
-          echo "$KS_B64" | base64 -d > ~/.android/debug.keystore
+          OK=0
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | tr -d '[:space:]' | base64 -d > ~/.android/debug.keystore 2>/dev/null || true
+            if keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey >/dev/null 2>&1; then
+              OK=1
+              echo "Keystore dari secret VALID, dipakai."
+            else
+              echo "::warning::Keystore dari secret TIDAK valid (alias/password salah atau file rusak). Membuat keystore sementara."
+            fi
+          else
+            echo "::warning::Secret DEBUG_KEYSTORE_B64 kosong. Membuat keystore sementara."
+          fi
+          if [ "$OK" = "0" ]; then
+            rm -f ~/.android/debug.keystore
+            keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android \
+              -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
+              -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            echo "::warning::Pakai keystore sementara: update ke versi baru harus uninstall dulu."
+          fi
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android | grep -E "Alias|Signature algorithm|Valid|Key"
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+      - name: Cek APK valid
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk onar-simulator.apk
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          $BT/apksigner verify --verbose --print-certs onar-simulator.apk
+          $BT/aapt dump badging onar-simulator.apk | head -5
       - name: Terbitkan ke Releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk onar-simulator.apk
           SIG=$(keytool -printcert -jarfile onar-simulator.apk | grep "SHA256:" | head -1 | sed 's/^[[:space:]]*//')
           echo "Tanda tangan APK: $SIG"
           gh release create "v${{ github.run_number }}" onar-simulator.apk --repo "${{ github.repository }}" --title "Onar Simulator v${{ github.run_number }}" --notes "Unduh onar-simulator.apk lalu pasang di Android. Tanda tangan (harus sama di semua versi): $SIG"
