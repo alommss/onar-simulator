@@ -27,6 +27,8 @@ jobs:
           npx cap init "Onar Simulator" com.onar.simulator --web-dir=www
           npx cap add android
           npx cap sync android
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"${{ github.run_number }}\"/" android/app/build.gradle
       - name: Layar landscape dan ikon
         run: |
           sed -i 's/<activity/<activity android:screenOrientation="landscape"/' android/app/src/main/AndroidManifest.xml
@@ -82,6 +84,13 @@ jobs:
               }
           }
           JAVA
+      - name: Pakai keystore tetap (supaya update bisa menimpa versi lama)
+        env:
+          KS_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KS_B64" ]; then echo "Secret DEBUG_KEYSTORE_B64 belum diisi"; exit 1; fi
+          mkdir -p ~/.android
+          echo "$KS_B64" | base64 -d > ~/.android/debug.keystore
       - name: Build APK
         run: |
           cd android
