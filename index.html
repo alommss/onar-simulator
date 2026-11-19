@@ -1623,9 +1623,9 @@ function setMode(m){window.__tm=-1;mode=m;const o=m==='ow';dragObjs.forEach(x=>x
    Tampil: X, Z (posisi dunia, satuan meter) dan H (arah hadap, derajat; 0 = menghadap -z / arah SPBU). Saat jalan kaki yang tampil posisi karakter.
    Ketuk kotaknya = salin "x:..., z:..., h:..." (h dalam radian, format sama dengan SPAWN) untuk ditempel ke chat. */
 let coordRight=-1,coordN=0,coordFlash=0;
-window.HUDS=(function(){let o={coord:1,map:1,perf:0};try{const j=JSON.parse(localStorage.getItem('dmHud')||'null');if(j)Object.assign(o,j)}catch(e){}return o})();
+window.HUDS=(function(){let o={coord:1,perf:0};try{const j=JSON.parse(localStorage.getItem('dmHud')||'null');if(j)Object.assign(o,j)}catch(e){}return o})();
 window.hudSave=function(){try{localStorage.setItem('dmHud',JSON.stringify(HUDS))}catch(e){}};
-function updCoord(o){try{window.mapTick&&window.mapTick(o)}catch(e){}const c=document.getElementById('coord');if(!c)return;
+function updCoord(o){const c=document.getElementById('coord');if(!c)return;
  if(!HUDS.coord){if(c.style.display!=='none')c.style.display='none';return}
  if(c.style.display!=='block')c.style.display='block';
  const por=innerHeight>innerWidth;c.classList.toggle('por',por);
@@ -1892,53 +1892,15 @@ const F=(w,l,m,x,y,d)=>{const q=add(new THREE.Mesh(new THREE.PlaneGeometry(w,l),
 const I=(g,m,a,col)=>{const im=new THREE.InstancedMesh(g,m,a.length),c=new THREE.Color();a.forEach(([x,y,d,sx,sy,sz,ry,cc],i)=>{O3.position.set(x,y,-d);O3.rotation.set(0,ry||0,0);O3.scale.set(sx||1,sy||1,sz||1);O3.updateMatrix();im.setMatrixAt(i,O3.matrix);if(col)im.setColorAt(i,c.set(cc))});O3.scale.set(1,1,1);im.frustumCulled=false;G.add(im);return im};
 const conc=std('#3a3c41',.9),conc2=std('#45474d',.85);conc.fog=conc2.fog=false;
 // ---- tanah: paving/pelataran di seluruh area (menutup jalan petak bawaan) ----
-const gT=ctex(128,128,(g,w,h)=>{g.fillStyle='#55534d';g.fillRect(0,0,w,h);g.strokeStyle='rgba(0,0,0,.25)';g.strokeRect(0,0,w,h);nz(g,w,h,500,.06)},34,L/4);
+const gT=ctex(128,128,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);nz(g,w,h,500,.06)},34,L/4);
 const gM=M(gT,.9);gM.polygonOffset=true;gM.polygonOffsetFactor=-1;gM.polygonOffsetUnits=-1;
 F(170,L,gM,10,.02,L/2);
 // ---- badan jalan: jalur sepeda hijau, 2 lajur kiri, 3 lajur utama, gore bergaris miring, jalur kanan beraspal baru ----
 const U0=-14.5,UW=39.5,PX=16,X=u=>(u-U0)*PX;
 const rT=ctex(Math.round(UW*PX),512,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);g.fillStyle='#202127';g.fillRect(X(13.5),0,X(24.5)-X(13.5),h);
- g.fillStyle='#2f7d57';g.fillRect(X(-14),0,X(-11)-X(-14),h);nz(g,w,h,7000,.05);
- g.fillStyle='#dcdcd8';const ds=u=>{for(let y=0;y<h;y+=128)g.fillRect(X(u)-2,y+16,5,48)},so=u=>g.fillRect(X(u)-2,0,5,h);
- [-11,-1.75,1.75,17.5,21].forEach(ds);[-5.3,5.3,13.8,24.2].forEach(so);
- g.save();g.beginPath();g.rect(X(5.4),0,X(8)-X(5.4),h);g.clip();for(let y=-60;y<h+60;y+=34){g.beginPath();g.moveTo(X(5.4),y);g.lineTo(X(8),y-34);g.lineTo(X(8),y-24);g.lineTo(X(5.4),y+10);g.fill()}g.restore()},1,L/32);
+ nz(g,w,h,7000,.05)},1,L/32);
 const rM=M(rT,.35);rM.metalness=.2;rM.polygonOffset=true;rM.polygonOffsetFactor=-3;rM.polygonOffsetUnits=-3;
 F(UW,L,rM,U0+UW/2,.04,L/2);
-// ---- kerb hitam-putih (kiri, median, jalur kanan, pulau kiri) ----
-const kb=[];for(let d=0;d<L;d+=1.6){const c=(d/1.6|0)%2?'#e8e8e8':'#18181c';[-14.3,8.25,13.25,24.7].forEach(u=>kb.push([u,.12,d+.8,1,1,1,0,c]));if(d>45)[-7.5,-5.4].forEach(u=>kb.push([u,.12,d+.8,1,1,1,0,c]))}
-I(new THREE.BoxGeometry(.4,.24,1.6),std('#ffffff',.7),kb,true);
-// ---- trotoar kiri + jalur pemandu kuning, trotoar kanan ----
-const swT=ctex(128,128,(g,w,h)=>{g.fillStyle='#8e8b84';g.fillRect(0,0,w,h);g.strokeStyle='rgba(0,0,0,.2)';g.strokeRect(1,1,w-2,h-2);nz(g,w,h,400,.06)},5,L/3);
-B(5,.22,L,M(swT,.85),-17.1,.11,L/2);B(.5,.02,L,bas('#d9ae1e'),-16.2,.23,L/2);B(5.5,.22,L,M(swT,.85),27.5,.11,L/2);
-// ---- median kanan (pagar tanaman) & pulau kiri berpohon cemara ----
-const hT=ctex(128,128,(g,w,h)=>{g.fillStyle='#2c6a2b';g.fillRect(0,0,w,h);for(let i=0;i<500;i++){g.fillStyle=i%2?'#3f8a35':'#1f4f22';g.beginPath();g.arc(Math.random()*w,Math.random()*h,3+Math.random()*4,0,7);g.fill()}},2,L/6),hM=M(hT,.95);
-B(4.5,1.15,L,hM,10.75,.7,L/2);B(1.5,1,L-48,hM,-6.45,.62,45+(L-45)/2);B(2.1,.2,L-45,std('#8d8a82',.9),-6.45,.1,45+(L-45)/2);
-const cyG=new THREE.CylinderGeometry(.12,.95,6.6,8),cyM=std('#1d5a2b',.9),cy=[];
-for(let d=52;d<L;d+=7)cy.push([-6.45,4.2,d+R(d)*2,.85+R(d+1)*.3,.8+R(d+2)*.45,.85+R(d+1)*.3]),pole(-6.45,d);
-for(let d=12;d<L+40;d+=7.5)if(((d-20)%35+35)%35>4&&((d-20)%35)<31)cy.push([10.75,4.3,d,.9,.9+R(d)*.4,.9]);
-if(window.treeBatch)treeBatch(G,cy.map(a=>[a[0],1,-a[2],6.2*a[4],R(a[2]*3.1)*6.283]));else I(cyG,cyM,cy);
-// ---- pohon besar di trotoar kiri (tajuk menaungi jalur sepeda) ----
-const trk=[],crw=[];for(let k=0,d=22;d<L;k++,d+=24+R(k)*8){trk.push([-16,3.2,d]);pole(-16,d);[[0,10.2,0,5.2],[-2.2,9,2.6,4.2],[2.6,9.4,-2.4,4.4],[-1,12,-1.5,3.6]].forEach(([a,b,c,r])=>crw.push([-14.6+a,b,d+c,r,r*.85,r,0,R(k+r)>.5?'#2a6e2c':'#1f5a2a']))}
-if(window.treeBatch)treeBatch(G,trk.map(a=>[a[0],.22,-a[2],14+R(a[2])*3,R(a[2]*1.7)*6.283]));else{I(new THREE.CylinderGeometry(.5,.75,6.4,8),std('#4a3a2a',.95),trk);I(new THREE.SphereGeometry(1,10,8),std('#ffffff',.9),crw,true);}
-// ---- lampu jalan putih melengkung ke arah jalan ----
-const lc=new THREE.CatmullRomCurve3([[0,0],[0,5.5],[.25,8.3],[1.5,9.5],[3.4,9.9],[5,9.8]].map(p=>new THREE.Vector3(p[0],p[1],0))),lp=[],lh=[];
-for(let d=12;d<L;d+=30){lp.push([-14.9,0,d]);lh.push([-9.9,9.72,d]);pole(-14.9,d);const sp=new THREE.Sprite(sprM);sp.scale.set(7,7,1);sp.position.set(-9.9,9.5,-d);G.add(sp)}
-I(new THREE.TubeGeometry(lc,24,.1,6),std('#f2f2ee',.5),lp);I(new THREE.BoxGeometry(1.3,.15,.5),bas('#fff3c4'),lh);
-// ---- deretan ruko, tembok mural, kabel listrik di sisi kiri ----
-const fT=k=>ctex(256,128,(g,w,h)=>{g.fillStyle=['#d9c9b0','#c8d0c4','#e6d6b8','#b9c4cf'][k%4];g.fillRect(0,0,w,h);nz(g,w,h,500,.06);
- if(k%2){g.fillStyle='#7a7d82';g.fillRect(8,60,w-16,60);for(let x=8;x<w-8;x+=14){g.fillStyle=x%28?'#8a8d92':'#6e7176';g.fillRect(x,60,13,60)}g.fillStyle='#e8892a';g.fillRect(40,40,120,16);g.fillStyle='#fff';g.font='bold 12px sans-serif';g.fillText('WARUNG KOPI',50,53)}
- else{g.fillStyle='#4b5a63';for(let x=14;x<w;x+=50){g.fillRect(x,16,30,34);g.fillRect(x,72,30,34)}}},1,1);
-const bm=[0,1,2,3].map(k=>{const f=M(fT(k),.85,.35),r=std('#6b6a66',.9);return[f,r,r,r,r,r]});
-const mu=ctex(256,128,(g,w,h)=>{g.fillStyle='#cfc6b4';g.fillRect(0,0,w,h);const c=['#2fb6c9','#e8438a','#ffcf33','#5b3fd1','#35c77a','#ff7a1a'];for(let i=0;i<26;i++){g.fillStyle=c[i%6];g.beginPath();g.ellipse(Math.random()*w,Math.random()*h,8+Math.random()*30,6+Math.random()*18,Math.random()*3,0,6.28);g.fill()}g.strokeStyle='#111';g.lineWidth=3;for(let i=0;i<6;i++){g.beginPath();g.moveTo(Math.random()*w,Math.random()*h);g.bezierCurveTo(Math.random()*w,Math.random()*h,Math.random()*w,Math.random()*h,Math.random()*w,Math.random()*h);g.stroke()}},1,1),muM=M(mu,.85,.35),awn=std('#8b8d90',.8);
-for(let i=0,d=6;d<L-12;i++){const len=9+R(i)*13;
- if(i%3==1){B(.4,2.8,len,muM,-20.4,1.4,d+len/2)}
- else{const h=4+R(i+5)*5;B(12,h,len,bm[i%4],-26.2,h/2,d+len/2);if(i%2)B(2.2,.12,len*.8,awn,-19,2.9,d+len/2)}
- d+=len+.8}
-const wp=[],wr=[7.4,6.8];for(let d=0;d<L-30;d+=30)wr.forEach((y,j)=>{for(let s=0;s<8;s++){const t0=s/8,t1=(s+1)/8,sg=t=>-Math.sin(t*Math.PI)*.8;wp.push(-19.3+j*.3,y+sg(t0),-(d+t0*30),-19.3+j*.3,y+sg(t1),-(d+t1*30))}});
-const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(wp,3));G.add(new THREE.LineSegments(wg,new THREE.LineBasicMaterial({color:0x111111})));
-// ---- gedung kaca di kejauhan ----
-const gl=ctex(128,256,(g,w,h)=>{g.fillStyle='#4f8f93';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=10){g.fillStyle=y%20?'#8fc9c4':'#6fb0ad';g.fillRect(0,y,w,6)}g.fillStyle='rgba(255,255,255,.7)';for(let x=0;x<w;x+=16)g.fillRect(x,0,2,h)},2,6),glM=M(gl,.3,.5);glM.fog=false;
-B(26,64,24,glM,-42,32,330);B(40,6,34,std('#d8dadd',.6),-42,3,330);
 // ---- jalan layang (kanan): dek, balok melintang, gelagar, pagar & pilar besar ----
 const DL=L+120,dc=(L-40)/2+0;
 const concD=std('#2b2c30',.9);concD.fog=false;B(34,2.2,DL,concD,22.5,10.1,L/2);B(.35,1.1,DL,conc2,5.7,11.75,L/2);B(.1,.1,DL,bas('#bbb'),5.7,12.4,L/2);
@@ -1948,14 +1910,6 @@ const ps=[],pc=[],pb=[];for(let d=20;d<L+60;d+=35){ps.push([12.2,4.2,d]);pc.push
 I(new THREE.BoxGeometry(2.4,8.4,2.2),conc,ps);I(new THREE.BoxGeometry(6.6,1.2,2.8),conc,pc);I(new THREE.BoxGeometry(3,1.3,2.6),conc,pb);
 // dek kedua lebih rendah di kejauhan kanan + pohon di bawahnya
 B(32,1.4,DL,conc,56,7.2,L/2);const p2=[];for(let d=10;d<L+80;d+=30)p2.push([44,3.2,d]);I(new THREE.BoxGeometry(1.8,6.4,1.8),conc,p2);
-const tr2=[];for(let d=6;d<L;d+=13)tr2.push([31+R(d)*6,3.2+R(d+1)*1.5,d,3.2,3,3.2,0,R(d+3)>.5?'#2a6e2c':'#1f5a2a']);if(window.treeBatch)treeBatch(G,tr2.map(a=>[a[0],.02,-a[2],5+R(a[2]+9)*.9,R(a[2]*2.3)*6.283]));else I(new THREE.SphereGeometry(1,10,8),std('#ffffff',.9),tr2,true);
-// ---- rambu: JALAN TOL MASUK (hijau), rambu biru panah, portal ----
-const gs=(txt1,txt2)=>ctex(256,96,(g,w,h)=>{g.fillStyle='#0b7a3e';g.fillRect(0,0,w,h);g.strokeStyle='#fff';g.lineWidth=4;g.strokeRect(4,4,w-8,h-8);g.fillStyle='#fff';g.textAlign='center';g.font='bold 30px sans-serif';g.fillText(txt1,w/2+14,42);g.font='bold 26px sans-serif';g.fillText(txt2,w/2+14,78);g.beginPath();g.moveTo(26,12);g.lineTo(40,30);g.lineTo(32,30);g.lineTo(32,48);g.lineTo(20,48);g.lineTo(20,30);g.lineTo(12,30);g.fill()},1,1);
-const sb=(w,h,t,x,y,d)=>{B(w,h,.15,[std('#444'),std('#444'),std('#444'),std('#444'),new THREE.MeshBasicMaterial({map:t}),std('#444')],x,y,d)};
-sb(5.6,2.1,gs('JALAN TOL','MASUK'),7,5.7,130);B(.25,6.5,.25,std('#8a8d92',.5),8.6,3.25,130);pole(8.6,130);
-sb(8,2.4,gs('JALAN TOL','KE KOTA'),-1,7.6,L-40);[-9,7].forEach(u=>{B(.4,8.4,.4,std('#8a8d92',.5),u,4.2,L-40);pole(u,L-40)});B(18,.45,.4,std('#8a8d92',.5),-1,8.9,L-40);
-const bt=ctex(128,128,(g,w,h)=>{g.fillStyle='#1d6fd1';g.beginPath();g.arc(64,64,62,0,7);g.fill();g.strokeStyle='#fff';g.lineWidth=5;g.stroke();g.fillStyle='#fff';g.translate(64,64);g.rotate(Math.PI*.75);g.beginPath();g.moveTo(0,-38);g.lineTo(26,-6);g.lineTo(9,-6);g.lineTo(9,38);g.lineTo(-9,38);g.lineTo(-9,-6);g.lineTo(-26,-6);g.closePath();g.fill()},1,1),btM=BM(bt);
-[[-6.45,45],[8.6,96]].forEach(([u,d])=>{B(.12,2.4,.12,std('#8a8d92',.5),u,1.2,d);const c=add(new THREE.Mesh(new THREE.CircleGeometry(.45,24),btM),u,2.5,-d+.1,G);pole(u,d)});
 G.traverse(o=>{if(o.isInstancedMesh)o.frustumCulled=false});
 }catch(e){console.error('Jalan Tol Layang',e)}})();
 
@@ -2783,7 +2737,7 @@ function showSettings(from,tab){const fg=from==='game';if(fg)hideHome();ov.style
   ?'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Kualitas grafik</span></div><div class="gSegs">'+seg('gqR','RENDAH',GFX.q==='rendah')+seg('gqN','NORMAL',GFX.q==='normal')+seg('gqT','TINGGI',GFX.q==='tinggi')+'</div><p id="gqD" style="font-size:12px;opacity:.7;margin:8px 0 0"></p></div>'
    +'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Resolusi</span><span id="grv">'+GFX.res+'</span></div><input id="gr" type="range" min="0" max="100" value="'+GFX.res+'" style="width:100%;height:32px;accent-color:#ffb020"></div>'
   :tab==='h'
-  ?[['coord','Koordinat (X Z H)','Kotak posisi di bagian atas layar.'],['map','Peta mini','Peta kecil di atas layar. Ketuk untuk membuka peta penuh.'],['perf','FPS & draw call','Info performa untuk mengecek beban game.']].map(r=>'<div style="margin:14px 0;text-align:left"><div class="tg" style="margin:0 0 6px"><span>'+r[1]+'</span></div><div class="gSegs">'+seg('hu_'+r[0]+'1','ON',HUDS[r[0]])+seg('hu_'+r[0]+'0','OFF',!HUDS[r[0]])+'</div><p style="font-size:12px;opacity:.7;margin:6px 0 0">'+r[2]+'</p></div>').join('')
+  ?[['coord','Koordinat (X Z H)','Kotak posisi di bagian atas layar.'],['perf','FPS & draw call','Info performa untuk mengecek beban game.']].map(r=>'<div style="margin:14px 0;text-align:left"><div class="tg" style="margin:0 0 6px"><span>'+r[1]+'</span></div><div class="gSegs">'+seg('hu_'+r[0]+'1','ON',HUDS[r[0]])+seg('hu_'+r[0]+'0','OFF',!HUDS[r[0]])+'</div><p style="font-size:12px;opacity:.7;margin:6px 0 0">'+r[2]+'</p></div>').join('')
   :tab==='p'
   ?'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Username</span></div><input id="pfN" class="stgIn" type="text" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Masukkan username"><p style="font-size:12px;opacity:.7;margin:8px 0 0">Nama yang tampil di game (maks. 16 karakter)</p><button id="pfS" type="button" class="gmB">SIMPAN</button></div>'
   :row('vm','Atur volume musik',MUS)+row('vg','Atur volume game',SND);
@@ -2795,7 +2749,7 @@ function showSettings(from,tab){const fg=from==='game';if(fg)hideHome();ov.style
   $('gqT').onclick=()=>{gfxSet({q:'tinggi'});sync()};
   let tm=0;$('gr').oninput=e=>{const v=Math.max(0,Math.min(100,+e.target.value|0));$('grv').textContent=v;clearTimeout(tm);tm=setTimeout(()=>gfxSet({res:v}),90)}
  }else if(tab==='h'){
-  ['coord','map','perf'].forEach(k=>{const a=$('hu_'+k+'1'),b=$('hu_'+k+'0');
+  ['coord','perf'].forEach(k=>{const a=$('hu_'+k+'1'),b=$('hu_'+k+'0');
    const set=v=>{HUDS[k]=v?1:0;hudSave();a.classList.toggle('on',!!v);b.classList.toggle('on',!v);try{window.hudApply&&window.hudApply()}catch(e){}};
    a.onclick=()=>set(1);b.onclick=()=>set(0)})
  }else if(tab==='p'){
@@ -3565,62 +3519,11 @@ window.LEDSND={on:true,r0:5,r1:50,vol:1,curve:2};
 })();
 </script>
 <script>
-/* ===== PETA (peta mini + peta penuh) + INFO PERFORMA =====
-   Peta digambar dari koordinat dunia yang sama dengan HUD "X Z H": atas = arah -Z (arah SPBU), kanan = +X.
-   Tambah titik/area baru lewat MAPD.poi / MAPD.areas. On/off di Pengaturan > TAMPILAN. */
+/* ===== INFO PERFORMA: FPS + draw call + segitiga (on/off di Pengaturan > TAMPILAN) ===== */
 (function(){
- const MAPD={
-  areas:[ // [x0,x1,z0,z1,warna,label]
-   [-177,15,-90,90,'#1b3326','Green Pramuka City'],
-   [-181,19,-75.1,-51.1,'#3a3b45',''],      // jalan lebar kiri (LKR)
-   [19,45.4,-535,110,'#3a3b45',''],          // jalan utama
-   [14.85,18.9,-535,-75,'#8a8a94',''],       // trotoar kiri
-   [-12,14,-350,-310,'#7a5a14','']],
-  poi:[[40,-49.5,'Spawn','#3ddc84'],[-23.7,-43.9,'LED wall','#ff5a5a'],[-26.5,-34,'Billboard','#ffb020'],[21.7,-77.3,'Mobil polisi','#6ab0ff'],[8,-330,'SPBU','#ffd24d']]};
- window.MAPD=MAPD;
- const css=document.createElement('style');css.textContent=
-  '#mmap{position:fixed;z-index:5;left:calc(50% - 168px);top:calc(46px + env(safe-area-inset-top,0px));width:104px;height:104px;border-radius:50%;border:2px solid #ffffff66;background:#0e1424;box-shadow:0 4px 14px #0008;overflow:hidden;display:none;touch-action:manipulation;-webkit-user-select:none;user-select:none}'
- +'#mmap canvas{display:block;width:100%;height:100%}'
- +'#mapFS{position:fixed;inset:0;z-index:45;background:#05060df2;display:none;flex-direction:column;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}'
- +'#mapFS .mh{width:100%;display:flex;justify-content:space-between;align-items:center;color:#fff;font:800 14px system-ui,sans-serif;letter-spacing:1px;margin-bottom:8px}'
- +'#mapFS .mh button{padding:9px 16px;border:0;border-radius:10px;background:#ffb020;color:#1a1200;font:800 13px system-ui,sans-serif}'
- +'#mapFS .mw{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}'
- +'#mapFS canvas{max-width:100%;max-height:100%;border:1px solid #ffffff33;border-radius:10px;background:#0e1424}'
- +'#perf{position:fixed;z-index:6;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(86px + env(safe-area-inset-bottom,0px));padding:5px 8px;border-radius:6px;background:#000b;color:#9ff0b8;font:700 11px/1.4 ui-monospace,Menlo,Consolas,monospace;display:none;pointer-events:none;white-space:pre}';
+ const css=document.createElement('style');css.textContent='#perf{position:fixed;z-index:6;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(86px + env(safe-area-inset-bottom,0px));padding:5px 8px;border-radius:6px;background:#000b;color:#9ff0b8;font:700 11px/1.4 ui-monospace,Menlo,Consolas,monospace;display:none;pointer-events:none;white-space:pre}';
  document.head.appendChild(css);
- const mm=document.createElement('div');mm.id='mmap';mm.setAttribute('role','button');mm.setAttribute('aria-label','Peta');
- const mc=document.createElement('canvas');mm.appendChild(mc);document.body.appendChild(mm);
- const fs=document.createElement('div');fs.id='mapFS';
- fs.innerHTML='<div class="mh"><span>PETA &middot; <span id="mapXY"></span></span><button type="button" id="mapX">TUTUP</button></div><div class="mw"><canvas id="mapC"></canvas></div>';document.body.appendChild(fs);
  const pf=document.createElement('div');pf.id='perf';document.body.appendChild(pf);
- const fc=document.getElementById('mapC');
- let me={x:0,z:0,h:0},open=false,lastT=-1e9,dpr=Math.min(window.devicePixelRatio||1,2);
- function arrow(g,x,y,h,r){g.save();g.translate(x,y);g.rotate(-h);g.beginPath();g.moveTo(0,-r*1.3);g.lineTo(r*.9,r);g.lineTo(0,r*.45);g.lineTo(-r*.9,r);g.closePath();g.fillStyle='#ffe14d';g.strokeStyle='#000';g.lineWidth=1.5;g.fill();g.stroke();g.restore()}
- function draw(cv,W,H,cx,cz,sc,full){
-  const g=cv.getContext('2d');g.setTransform(1,0,0,1,0,0);cv.width=W;cv.height=H;g.fillStyle='#0e1424';g.fillRect(0,0,W,H);
-  const X=x=>W/2+(x-cx)*sc,Z=z=>H/2+(z-cz)*sc;
-  MAPD.areas.forEach(a=>{g.fillStyle=a[4];g.fillRect(X(a[0]),Z(a[2]),(a[1]-a[0])*sc,(a[3]-a[2])*sc)});
-  g.strokeStyle='#d8c050';g.lineWidth=Math.max(1,sc*.4);g.setLineDash([sc*4,sc*4]);g.beginPath();g.moveTo(X(32),Z(-535));g.lineTo(X(32),Z(110));g.stroke();g.setLineDash([]);
-  const fz=full?Math.max(11,H/60):9*dpr;g.font='700 '+fz+'px system-ui,sans-serif';g.textAlign='center';
-  MAPD.areas.forEach(a=>{if(full&&a[5]){g.fillStyle='#ffffffcc';g.fillText(a[5],X((a[0]+a[1])/2),Z((a[2]+a[3])/2)+fz/3)}});
-  MAPD.poi.forEach(p=>{g.beginPath();g.arc(X(p[0]),Z(p[1]),full?Math.max(4,H/150):3*dpr,0,6.2832);g.fillStyle=p[3];g.fill();g.strokeStyle='#000';g.lineWidth=1;g.stroke();
-   if(full){const o=Math.max(7,H/110),L=X(p[0])>W*.6;g.fillStyle='#fff';g.textAlign=L?'right':'left';g.fillText(p[2],X(p[0])+(L?-o:o),Z(p[1])+fz/3)}});
-  arrow(g,X(me.x),Z(me.z),me.h,full?Math.max(6,H/90):6*dpr)}
- function drawMini(){const S=Math.round(104*dpr);if(mc.width!==S)mc.width=mc.height=S;draw(mc,S,S,me.x,me.z,S/150,false)}
- function drawFull(){const r=fc.parentNode.getBoundingClientRect(),bx0=-190,bx1=60,bz0=-545,bz1=125;
-  const sc=Math.min((r.width-4)/(bx1-bx0),(r.height-4)/(bz1-bz0))*dpr,W=Math.round((bx1-bx0)*sc),H=Math.round((bz1-bz0)*sc);
-  draw(fc,W,H,(bx0+bx1)/2,(bz0+bz1)/2,sc,true);fc.style.width=(W/dpr)+'px';fc.style.height=(H/dpr)+'px';
-  document.getElementById('mapXY').textContent='X '+me.x.toFixed(1)+'  Z '+me.z.toFixed(1)}
- window.mapTick=function(o){me=o;const co=document.getElementById('coord');
-  mm.style.display=(HUDS.map&&!open)?'block':'none';
-  const t=performance.now();if(t-lastT<120)return;lastT=t;
-  if(open)drawFull();else if(HUDS.map)drawMini()};
- mm.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();open=true;fs.style.display='flex';mm.style.display='none';drawFull()});
- document.getElementById('mapX').addEventListener('pointerdown',e=>{e.preventDefault();open=false;fs.style.display='none'});
- addEventListener('resize',()=>{if(open)setTimeout(drawFull,150)});
- // sembunyikan peta di luar mode open world (home/menu)
- setInterval(()=>{let ow=false;try{ow=(st==='ow')}catch(e){}if(!ow){mm.style.display='none';if(open){open=false;fs.style.display='none'}}},400);
- // ---- info performa: FPS + draw call ----
  let fr=0,t0=performance.now(),on=false,lc=0,ltr=0;
  function loop(){if(!on)return;requestAnimationFrame(loop);fr++;const t=performance.now();
   try{const i=renderer.info;lc=i.render.calls;ltr=i.render.triangles;i.reset()}catch(e){} // 1 frame penuh (semua pass) per putaran
@@ -3629,8 +3532,7 @@ window.LEDSND={on:true,r0:5,r1:50,vol:1,curve:2};
  window.hudApply=function(){
   const want=!!HUDS.perf;
   if(want&&!on){on=true;try{renderer.info.autoReset=false}catch(e){}pf.style.display='block';t0=performance.now();fr=0;requestAnimationFrame(loop)}
-  else if(!want&&on){on=false;try{renderer.info.autoReset=true}catch(e){}pf.style.display='none'}
-  if(!HUDS.map)mm.style.display='none'};
+  else if(!want&&on){on=false;try{renderer.info.autoReset=true}catch(e){}pf.style.display='none'}};
  hudApply();
 })();
 </script>
