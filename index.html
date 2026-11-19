@@ -906,13 +906,9 @@ const DASH_IMG_AR=0.07;
 window.DASH_FIX=window.DASH_FIX||{};try{const sv=JSON.parse(localStorage.getItem('dashfix')||'null');if(sv&&typeof sv==='object')Object.assign(window.DASH_FIX,sv)}catch(e){}
 const DASH_SET=new Set();let DASH_READY=false,DASH_LIT=null,DASH_DIM=null,DASH_IW=1,DASH_IH=1,DASH_FR=0;
 (function(){try{const im=new Image();im.onload=()=>{try{const w=im.naturalWidth,h=im.naturalHeight,a=document.createElement('canvas'),b=document.createElement('canvas');a.width=b.width=w;a.height=b.height=h;
- const ca=a.getContext('2d'),cb=b.getContext('2d');ca.drawImage(im,0,0);cb.drawImage(im,0,0);cb.globalCompositeOperation='source-atop';cb.fillStyle='rgba(2,6,10,.8)';cb.fillRect(0,0,w,h);
- DASH_LIT=a;DASH_DIM=b;DASH_IW=w;DASH_IH=h;DASH_READY=true;DASH_SET.forEach(d=>{dashDraw(d);d.tex.needsUpdate=true})}catch(e){console.error('DASH img',e)}};im.src=DASH_IMG_SRC}catch(e){console.error('DASH',e)}})();
+ const ca=a.getContext('2d'),cb=b.getContext('2d');ca.drawImage(im,0,0);cb.drawImage(im,0,0);cb.globalCompositeOperation='source-atop';cb.fillStyle='#8b9096';cb.fillRect(0,0,w,h);
+ DASH_LIT=a;DASH_DIM=b;DASH_IW=w;DASH_IH=h;DASH_READY=true;DASH_SET.forEach(d=>{d.k=-1})}catch(e){console.error('DASH img',e)}};im.src=DASH_IMG_SRC}catch(e){console.error('DASH',e)}})();
 const DASH_SEG=[0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f]; // bit0..6 = segmen a,b,c,d,e,f,g
-function dashRR(x,l,t,w,h,r){x.moveTo(l+r,t);x.lineTo(l+w-r,t);x.arcTo(l+w,t,l+w,t+r,r);x.lineTo(l+w,t+h-r);x.arcTo(l+w,t+h,l+w-r,t+h,r);x.lineTo(l+r,t+h);x.arcTo(l,t+h,l,t+h-r,r);x.lineTo(l,t+r);x.arcTo(l,t,l+r,t,r);x.closePath()}
-window.DASH_LAYOUT=window.DASH_LAYOUT||{};
-/* Layout (pecahan 0..1 dari area speedometer): bx/by/bw = posisi & lebar bar RPM (bx,by = pojok kiri-atas); dx/dy = titik tengah angka; dh = tinggi angka */
-const DASH_LAY={bx:.09,by:.07,bw:.82,dx:.5,dy:.66,dh:.4},DASH_ASP=2.6;
 function dashDigit(x,ox,oy,w,h,t,v,lit,edge){
  const g=t*.14,hh=h/2,m=v<0?0:DASH_SEG[v];if(!m)return;
  const hs=cy=>{const x1=ox+t*.5+g,x2=ox+w-t*.5-g;x.moveTo(x1,cy);x.lineTo(x1+t*.5,cy-t*.5);x.lineTo(x2-t*.5,cy-t*.5);x.lineTo(x2,cy);x.lineTo(x2-t*.5,cy+t*.5);x.lineTo(x1+t*.5,cy+t*.5);x.closePath()};
@@ -921,22 +917,29 @@ function dashDigit(x,ox,oy,w,h,t,v,lit,edge){
  x.lineJoin='round';x.lineWidth=t*.55;x.strokeStyle=edge;x.fillStyle=edge;
  for(let i=0;i<7;i++)if(m>>i&1){x.beginPath();sg[i]();x.fill();x.stroke()}
  x.fillStyle=lit;for(let i=0;i<7;i++)if(m>>i&1){x.beginPath();sg[i]();x.fill()}}
-function dashDraw(d){const x=d.x,W=d.cv.width,H=d.cv.height,L=d.lay;
- x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,W,H);
- if(DASH_READY){const bw=W*L.bw,bh=bw*DASH_IMG_AR,bx=W*L.bx,by=H*L.by;
-  x.globalAlpha=.3;x.drawImage(DASH_LIT,0,0,DASH_IW,DASH_IH,bx,by,bw,bh);x.globalAlpha=1;
-  for(let i=0;i<d.n&&i<DASH_BARS.length;i++){const s=DASH_BARS[i];x.drawImage(DASH_LIT,s[0]*DASH_IW,0,(s[1]-s[0])*DASH_IW,DASH_IH,bx+s[0]*bw,by,(s[1]-s[0])*bw,bh)}}
- const dh=H*L.dh,dw=dh*.5,t=dw*.2,sp=dw*.3,tw=3*dw+2*sp,s=d.s;
- x.save();x.translate(W*L.dx-tw/2,H*L.dy+dh/2);x.transform(1,0,-.1,1,0,0);x.translate(0,-dh);
+/* Bagian 1: bar RPM (gambar kirimanmu). Batang mati = abu-abu, batang hidup = warna asli gambar sesuai RPM */
+function dashDrawRpm(p,n){const x=p.x,W=p.cv.width,H=p.cv.height;x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,W,H);if(!DASH_READY)return;
+ const bh=W*DASH_IMG_AR,by=(H-bh)/2;x.drawImage(DASH_DIM,0,0,DASH_IW,DASH_IH,0,by,W,bh);
+ for(let i=0;i<n&&i<DASH_BARS.length;i++){const s=DASH_BARS[i];x.drawImage(DASH_LIT,s[0]*DASH_IW,0,(s[1]-s[0])*DASH_IW,DASH_IH,s[0]*W,by,(s[1]-s[0])*W,bh)}}
+/* Bagian 2: angka kecepatan digital */
+function dashDrawNum(p,s){const x=p.x,W=p.cv.width,H=p.cv.height;x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,W,H);
+ const dh=H*.84,dw=dh*.5,t=dw*.2,sp=dw*.3,tw=3*dw+2*sp;
+ x.save();x.translate((W-tw)/2,(H+dh)/2);x.transform(1,0,-.1,1,0,0);x.translate(0,-dh);
  const dg=[s>=100?Math.floor(s/100)%10:-1,s>=10?Math.floor(s/10)%10:-1,s%10];
  for(let i=0;i<3;i++)dashDigit(x,i*(dw+sp),0,dw,dh,t,dg[i],'#f4fdff','rgba(0,12,24,.9)');
  x.restore()}
 function dashSet(b,kmh,rpm){const d=b&&b.dash;if(!d)return;
  const s=Math.min(999,Math.max(0,Math.round(Math.abs(kmh)||0))),n=Math.max(0,Math.min(DASH_BARS.length,Math.round(((rpm||1250)-1000)/8000*DASH_BARS.length)));
- if(d.k===0&&d.s===s&&d.n===n)return;d.k=0;d.s=s;d.n=n;dashDraw(d);d.tex.needsUpdate=true}
-function dashFree(b){const d=b&&b.dash;if(!d)return;b.dash=null;DASH_SET.delete(d);try{if(d.mesh.parent)d.mesh.parent.remove(d.mesh);d.mesh.geometry.dispose();d.mesh.material.dispose();d.tex.dispose()}catch(e){}}
+ const all=d.k!==0;if(!all&&d.s===s&&d.n===n)return;
+ const r=d.parts[0],t=d.parts[1];
+ if(all||d.n!==n){dashDrawRpm(r,n);r.tex.needsUpdate=true}
+ if(all||d.s!==s){dashDrawNum(t,s);t.tex.needsUpdate=true}
+ d.k=0;d.s=s;d.n=n}
+function dashDispose(d){d.parts.forEach(p=>{try{if(p.mesh.parent)p.mesh.parent.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();p.tex.dispose()}catch(e){}})}
+function dashFree(b){const d=b&&b.dash;if(!d)return;b.dash=null;DASH_SET.delete(d);dashDispose(d)}
 function dashTick(){try{dashSet(P,P.v*3.6,P.rpm);if(O&&O.dash)dashSet(O,O.v*3.6,O.rpm);
- if(++DASH_FR%240===0)DASH_SET.forEach(d=>{let r=d.mesh;while(r.parent)r=r.parent;if(r!==scene){DASH_SET.delete(d);try{d.mesh.geometry.dispose();d.mesh.material.dispose();d.tex.dispose()}catch(e){}}})}catch(e){}}
+ if(++DASH_FR%240===0)DASH_SET.forEach(d=>{let r=d.parts[0].mesh;while(r.parent)r=r.parent;if(r!==scene){DASH_SET.delete(d);dashDispose(d)}})}catch(e){}}
+/* Posisi tiap bagian bisa digeser/diputar terpisah lewat tombol DASH (kunci tersimpan: <motor>.rpm dan <motor>.num) */
 function dashAttach(nb,b,kind){try{
  const V=THREE.Vector3,F=(window.DASH_FIX||{})[kind]||{};
  nb.updateMatrixWorld(true);const inv=nb.matrixWorld.clone().invert();
@@ -969,43 +972,57 @@ function dashAttach(nb,b,kind){try{
  else if(nb.userData&&nb.userData.S){const bb=new THREE.Box3().setFromObject(nb.userData.S);if(!bb.isEmpty())cen.set(0,bb.max.y-.07,bb.max.z-.2)}
  if(!best){n.normalize();ux.crossVectors(up,n).normalize();uy.crossVectors(n,ux).normalize()}
  n.normalize();
- const asp=DASH_ASP,pw=Math.max(.08,Math.min(.26,best?w*.52:.17))*(F.s||1),ph=pw/asp;
  const bas=nn=>{ux.crossVectors(up,nn);if(ux.length()<.25)ux.crossVectors(new V(0,0,-1),nn);ux.normalize();uy.crossVectors(nn,ux).normalize()};
  bas(n);
- const p0=cen.clone().addScaledVector(uy,(best?h*.1:0)+(F.v||0)).addScaledVector(ux,F.u||0);
- let nn=n.clone(),pp=p0.clone(),snap='tidak kena',lap=0;
- try{const rc=new THREE.Raycaster();rc.set(p0.clone().addScaledVector(n,.35),n.clone().negate());rc.far=.7;
-  const ds=[];rc.intersectObject(nb,true).filter(q=>q.object.isMesh&&q.face).forEach(q=>{if(!ds.length||q.distance-ds[ds.length-1].distance>.01)ds.push(q)});lap=ds.length;const ht=ds[Math.min(F.h||0,ds.length-1)];
-  if(ht){const hn=ht.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(ht.object.matrixWorld)).normalize();if(hn.dot(n)<0)hn.negate();if(hn.dot(n)>.6)nn.copy(hn);pp.copy(ht.point);snap='kena'}}catch(e){}
- bas(nn);
- const cv=document.createElement('canvas');cv.height=256;cv.width=Math.round(256*asp);
- const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=Math.min(8,MAXA);
- const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,toneMapped:false,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
- const me=new THREE.Mesh(new THREE.PlaneGeometry(1,1),mat);me.userData.dash=1;me.name='dash';me.layers.mask=nb.layers.mask;
- const q=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(ux,uy,nn));if(F.rx)q.multiply(new THREE.Quaternion().setFromAxisAngle(new V(1,0,0),F.rx));
- const pos=pp.clone().addScaledVector(nn,.006+(F.n||0));
- const T=new THREE.Matrix4().compose(pos,q,new V(pw,ph,1)),pr=inv.clone().multiply(par.matrixWorld),L=pr.clone().invert().multiply(T);
- L.decompose(me.position,me.quaternion,me.scale);par.add(me);
- const d={mesh:me,cv,x:cv.getContext('2d'),tex,s:-1,n:-1,k:-1,kind,nb,lay:Object.assign({},DASH_LAY,(window.DASH_LAYOUT||{})[kind]||{})};b.dash=d;DASH_SET.add(d);dashSet(b,0,1250);
- console.log('[DASH]',kind,'mesh:',src,'ukuran',w.toFixed(3)+'x'+h.toFixed(3)+' m','snap',snap,'lapisan',lap,'dipakai',F.h||0,'normal',n.toArray().map(v=>+v.toFixed(2)).join(','),'pos',pos.toArray().map(v=>+v.toFixed(3)).join(','))
+ const WW=Math.max(.08,Math.min(.26,best?w*.52:.17)),WH=WW/2.6;
+ const wc=cen.clone().addScaledVector(uy,best?h*.1:0);
+ const pr=inv.clone().multiply(par.matrixWorld),pri=pr.clone().invert();
+ const lg=[];
+ const build=(id,tw,th,cw,ch,du,dv)=>{
+  const G=(window.DASH_FIX||{})[kind+'.'+id]||{};
+  bas(n);
+  const pw=tw*(G.s||1),ph=th*(G.s||1);
+  const p0=wc.clone().addScaledVector(ux,du+(G.u||0)).addScaledVector(uy,dv+(G.v||0));
+  let nn=n.clone(),pp=p0.clone(),lap=0;
+  try{const rc=new THREE.Raycaster();rc.set(p0.clone().addScaledVector(n,.35),n.clone().negate());rc.far=.7;
+   const ds=[];rc.intersectObject(nb,true).filter(q=>q.object.isMesh&&q.face).forEach(q=>{if(!ds.length||q.distance-ds[ds.length-1].distance>.01)ds.push(q)});lap=ds.length;
+   const ht=ds[Math.min(G.h||0,ds.length-1)];
+   if(ht){const hn=ht.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(ht.object.matrixWorld)).normalize();if(hn.dot(n)<0)hn.negate();if(hn.dot(n)>.6)nn.copy(hn);pp.copy(ht.point)}}catch(e){}
+  bas(nn);
+  const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+  const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=Math.min(8,MAXA);
+  const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,toneMapped:false,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
+  const me=new THREE.Mesh(new THREE.PlaneGeometry(1,1),mat);me.userData.dash=1;me.name='dash_'+id;me.layers.mask=nb.layers.mask;
+  const q=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(ux,uy,nn));
+  q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(G.rx||0,G.ry||0,G.rz||0,'XYZ')));
+  const pos=pp.clone().addScaledVector(nn,.006+(G.n||0));
+  const T=new THREE.Matrix4().compose(pos,q,new V(pw,ph,1)),L=pri.clone().multiply(T);
+  L.decompose(me.position,me.quaternion,me.scale);par.add(me);
+  lg.push(id+':'+lap+' lapisan');
+  return{id,mesh:me,cv,x:cv.getContext('2d'),tex}};
+ const wb=WW*.82,hb=wb/8,hn=WH*.48;
+ const parts=[build('rpm',wb,hb,1024,128,0,WH*.5-WH*.07-wb*DASH_IMG_AR/2),build('num',hn*2,hn,512,256,0,-WH*.16)];
+ const d={parts,kind,nb,s:-1,n:-1,k:-1};b.dash=d;DASH_SET.add(d);dashSet(b,0,1250);
+ console.log('[DASH]',kind,'mesh:',src,'ukuran',w.toFixed(3)+'x'+h.toFixed(3)+' m',lg.join(', '))
 }catch(e){console.error('dashAttach',e)}}
-
 function dashRebuild(){const b=P;if(!b||!b.dash)return;const nb=b.dash.nb,k=b.dash.kind;dashFree(b);dashAttach(nb,b,k)}
-/* ALAT GESER (sementara): tombol "DASH" di tepi kiri layar -> panel tombol buat geser angka/RPM sampai pas di speedometer. Hasil tersimpan otomatis di perangkat. Matikan: window.DASH_TUNER=false */
+/* ALAT GESER (sementara): tombol "DASH" di tepi kiri layar. Pilih target (RPM / ANGKA), lalu geser, besarkan, putar, miringkan. Tersimpan otomatis di perangkat. Matikan: window.DASH_TUNER=false */
 function dashTunerInit(){try{if(window.DASH_TUNER===false||window.__dashTuner)return;window.__dashTuner=1;
+ let TG='rpm';
  const btn=document.createElement('div');btn.textContent='DASH';btn.style.cssText='position:fixed;left:0;top:42%;z-index:99998;font:700 10px sans-serif;color:#fff;background:#0007;padding:6px 5px;border-radius:0 6px 6px 0;opacity:.5';
- const pan=document.createElement('div');pan.style.cssText='position:fixed;left:6px;bottom:6px;z-index:99999;background:#000d;color:#fff;font:11px/1.35 monospace;padding:6px;border-radius:8px;display:none;user-select:none;-webkit-user-select:none;max-width:210px';
+ const pan=document.createElement('div');pan.style.cssText='position:fixed;left:6px;top:64px;z-index:99999;background:#000d;color:#fff;font:11px/1.35 monospace;padding:6px;border-radius:8px;display:none;user-select:none;-webkit-user-select:none;max-width:262px';
  const rd=document.createElement('div');rd.style.cssText='margin-bottom:5px;word-break:break-all';
- const gr=document.createElement('div');gr.style.cssText='display:grid;grid-template-columns:repeat(4,44px);gap:4px';
- const K=()=>P&&P.dash?P.dash.kind:null;
- const show=()=>{const k=K(),F=k&&DASH_FIX[k]||{};rd.textContent=k?('DASH_FIX.'+k+'='+JSON.stringify({u:+(F.u||0).toFixed(3),v:+(F.v||0).toFixed(3),n:+(F.n||0).toFixed(3),s:+(F.s||1).toFixed(2),rx:+(F.rx||0).toFixed(2),h:F.h||0})):'motor belum siap'};
- const ch=f=>()=>{const k=K();if(!k)return;const F=DASH_FIX[k]=DASH_FIX[k]||{};f(F);try{localStorage.setItem('dashfix',JSON.stringify(DASH_FIX))}catch(e){}dashRebuild();show()};
- const add=(l,fn)=>{const e=document.createElement('button');e.textContent=l;e.style.cssText='height:34px;font:700 14px sans-serif;border:0;border-radius:6px;background:#2d6cdf;color:#fff;touch-action:manipulation';let t1=0,t2=0;const stop=()=>{clearTimeout(t1);clearInterval(t2)};
-  e.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();fn();t1=setTimeout(()=>{t2=setInterval(fn,80)},320)});['pointerup','pointerleave','pointercancel'].forEach(t=>e.addEventListener(t,stop));gr.appendChild(e)};
- const st=.004;
- add('◀',ch(F=>F.u=(F.u||0)-st));add('▲',ch(F=>F.v=(F.v||0)+st));add('▼',ch(F=>F.v=(F.v||0)-st));add('▶',ch(F=>F.u=(F.u||0)+st));
- add('−',ch(F=>F.s=(F.s||1)*.96));add('+',ch(F=>F.s=(F.s||1)*1.04));add('↺',ch(F=>F.rx=(F.rx||0)-.04));add('↻',ch(F=>F.rx=(F.rx||0)+.04));
- add('N+',ch(F=>F.n=(F.n||0)+.003));add('N−',ch(F=>F.n=(F.n||0)-.003));add('Lapis',ch(F=>F.h=((F.h||0)+1)%4));add('Reset',ch(F=>{for(const k in F)delete F[k]}));add('Tutup',()=>{pan.style.display='none'});
+ const gr=document.createElement('div');gr.style.cssText='display:grid;grid-template-columns:repeat(6,40px);gap:3px';
+ const KY=()=>P&&P.dash?P.dash.kind+'.'+TG:null;
+ const show=()=>{const k=KY(),F=k&&DASH_FIX[k]||{};const f=v=>+(v||0).toFixed(3);rd.textContent=k?('TARGET: '+(TG==='rpm'?'RPM':'ANGKA')+'\nDASH_FIX["'+k+'"]='+JSON.stringify({u:f(F.u),v:f(F.v),n:f(F.n),s:+(F.s||1).toFixed(2),rx:f(F.rx),ry:f(F.ry),rz:f(F.rz),h:F.h||0})):'motor belum siap';rd.style.whiteSpace='pre-wrap';tb.textContent=TG==='rpm'?'RPM':'ANGKA'};
+ const ch=f=>()=>{const k=KY();if(!k)return;const F=DASH_FIX[k]=DASH_FIX[k]||{};f(F);try{localStorage.setItem('dashfix',JSON.stringify(DASH_FIX))}catch(e){}dashRebuild();show()};
+ const add=(l,fn)=>{const e=document.createElement('button');e.textContent=l;e.style.cssText='height:30px;font:700 12px sans-serif;border:0;border-radius:6px;background:#2d6cdf;color:#fff;touch-action:manipulation;padding:0';let t1=0,t2=0;const stop=()=>{clearTimeout(t1);clearInterval(t2)};
+  e.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();fn();t1=setTimeout(()=>{t2=setInterval(fn,80)},320)});['pointerup','pointerleave','pointercancel'].forEach(t=>e.addEventListener(t,stop));gr.appendChild(e);return e};
+ const st=.004,ro=.05;
+ add('◀',ch(F=>F.u=(F.u||0)-st));add('▲',ch(F=>F.v=(F.v||0)+st));add('▼',ch(F=>F.v=(F.v||0)-st));add('▶',ch(F=>F.u=(F.u||0)+st));add('−',ch(F=>F.s=(F.s||1)*.96));add('+',ch(F=>F.s=(F.s||1)*1.04));
+ add('↺',ch(F=>F.rz=(F.rz||0)+ro));add('↻',ch(F=>F.rz=(F.rz||0)-ro));add('X↑',ch(F=>F.rx=(F.rx||0)+ro));add('X↓',ch(F=>F.rx=(F.rx||0)-ro));add('Y◀',ch(F=>F.ry=(F.ry||0)-ro));add('Y▶',ch(F=>F.ry=(F.ry||0)+ro));
+ add('N+',ch(F=>F.n=(F.n||0)+.003));add('N−',ch(F=>F.n=(F.n||0)-.003));add('Lapis',ch(F=>F.h=((F.h||0)+1)%4));add('Reset',ch(F=>{for(const k in F)delete F[k]}));
+ const tb=add('RPM',()=>{TG=TG==='rpm'?'num':'rpm';show()});tb.style.background='#d2761c';add('Tutup',()=>{pan.style.display='none'});
  pan.appendChild(rd);pan.appendChild(gr);
  btn.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();pan.style.display=pan.style.display==='none'?'block':'none';show()});
  document.body.appendChild(btn);document.body.appendChild(pan)}catch(e){console.error('dashTuner',e)}}
