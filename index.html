@@ -2902,11 +2902,10 @@ function isBodyMat(mt,nm){
  try{const c=mt.color;if(c){const o={};c.clone().convertLinearToSRGB().getHSL(o);console.log('[VARIO mat]',nm,'#'+c.clone().convertLinearToSRGB().getHexString(),'h'+o.h.toFixed(2),'s'+o.s.toFixed(2),'l'+o.l.toFixed(2))}}catch(e){}
  if(/bodiputi/i.test(nm))return true;
  if(window.BODY_EXTRA&&window.BODY_EXTRA.test(nm))return true;
- if(!mt||!mt.color)return false;
+ if(!mt||!mt.color||mt.transparent||(mt.opacity!==undefined&&mt.opacity<1))return false; // kaca/panel transparan tetap hitam
  if(/^(mika|kaca|glass|lens|lampu|ban|ruji|velg|disk|karet|rubber|krom|chrome)/i.test(nm))return false;
- if(/spee?do|spido|spedo|dashboard|dasbor/i.test(nm))return true; // cover speedometer
  try{const o={};mt.color.clone().convertLinearToSRGB().getHSL(o);
-  // pink / lavender / putih keunguan (hue 0.70-1.0 atau 0-0.04), boleh pucat & boleh transparan
+  // pink / lavender / putih keunguan (hue 0.70-1.0 atau 0-0.04), boleh pucat
   if((o.h>=.7||o.h<=.04)&&o.s>=.08&&o.l>=.5)return true}catch(e){}
  return false}
 function hsv2rgb(h,s,v){h=(((h%360)+360)%360)/60;const i=Math.floor(h),f=h-i,p=v*(1-s),q=v*(1-s*f),t=v*(1-s*(1-f));return [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6].map(x=>Math.round(x*255))}
