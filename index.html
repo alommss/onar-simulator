@@ -973,9 +973,9 @@ function dashAttach(nb,b,kind){try{
  const bas=nn=>{ux.crossVectors(up,nn);if(ux.length()<.25)ux.crossVectors(new V(0,0,-1),nn);ux.normalize();uy.crossVectors(nn,ux).normalize()};
  bas(n);
  const p0=cen.clone().addScaledVector(uy,(best?h*.1:0)+(F.v||0)).addScaledVector(ux,F.u||0);
- let nn=n.clone(),pp=p0.clone(),snap='tidak kena';
+ let nn=n.clone(),pp=p0.clone(),snap='tidak kena',lap=0;
  try{const rc=new THREE.Raycaster();rc.set(p0.clone().addScaledVector(n,.35),n.clone().negate());rc.far=.7;
-  const ht=rc.intersectObject(nb,true).find(q=>q.object.isMesh&&q.face);
+  const ds=[];rc.intersectObject(nb,true).filter(q=>q.object.isMesh&&q.face).forEach(q=>{if(!ds.length||q.distance-ds[ds.length-1].distance>.01)ds.push(q)});lap=ds.length;const ht=ds[Math.min(F.h||0,ds.length-1)];
   if(ht){const hn=ht.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(ht.object.matrixWorld)).normalize();if(hn.dot(n)<0)hn.negate();if(hn.dot(n)>.6)nn.copy(hn);pp.copy(ht.point);snap='kena'}}catch(e){}
  bas(nn);
  const cv=document.createElement('canvas');cv.height=256;cv.width=Math.round(256*asp);
@@ -987,7 +987,7 @@ function dashAttach(nb,b,kind){try{
  const T=new THREE.Matrix4().compose(pos,q,new V(pw,ph,1)),pr=inv.clone().multiply(par.matrixWorld),L=pr.clone().invert().multiply(T);
  L.decompose(me.position,me.quaternion,me.scale);par.add(me);
  const d={mesh:me,cv,x:cv.getContext('2d'),tex,s:-1,n:-1,k:-1,kind,nb,lay:Object.assign({},DASH_LAY,(window.DASH_LAYOUT||{})[kind]||{})};b.dash=d;DASH_SET.add(d);dashSet(b,0,1250);
- console.log('[DASH]',kind,'mesh:',src,'ukuran',w.toFixed(3)+'x'+h.toFixed(3)+' m','snap',snap,'normal',n.toArray().map(v=>+v.toFixed(2)).join(','),'pos',pos.toArray().map(v=>+v.toFixed(3)).join(','))
+ console.log('[DASH]',kind,'mesh:',src,'ukuran',w.toFixed(3)+'x'+h.toFixed(3)+' m','snap',snap,'lapisan',lap,'dipakai',F.h||0,'normal',n.toArray().map(v=>+v.toFixed(2)).join(','),'pos',pos.toArray().map(v=>+v.toFixed(3)).join(','))
 }catch(e){console.error('dashAttach',e)}}
 
 function dashRebuild(){const b=P;if(!b||!b.dash)return;const nb=b.dash.nb,k=b.dash.kind;dashFree(b);dashAttach(nb,b,k)}
@@ -998,14 +998,14 @@ function dashTunerInit(){try{if(window.DASH_TUNER===false||window.__dashTuner)re
  const rd=document.createElement('div');rd.style.cssText='margin-bottom:5px;word-break:break-all';
  const gr=document.createElement('div');gr.style.cssText='display:grid;grid-template-columns:repeat(4,44px);gap:4px';
  const K=()=>P&&P.dash?P.dash.kind:null;
- const show=()=>{const k=K(),F=k&&DASH_FIX[k]||{};rd.textContent=k?('DASH_FIX.'+k+'='+JSON.stringify({u:+(F.u||0).toFixed(3),v:+(F.v||0).toFixed(3),n:+(F.n||0).toFixed(3),s:+(F.s||1).toFixed(2),rx:+(F.rx||0).toFixed(2)})):'motor belum siap'};
+ const show=()=>{const k=K(),F=k&&DASH_FIX[k]||{};rd.textContent=k?('DASH_FIX.'+k+'='+JSON.stringify({u:+(F.u||0).toFixed(3),v:+(F.v||0).toFixed(3),n:+(F.n||0).toFixed(3),s:+(F.s||1).toFixed(2),rx:+(F.rx||0).toFixed(2),h:F.h||0})):'motor belum siap'};
  const ch=f=>()=>{const k=K();if(!k)return;const F=DASH_FIX[k]=DASH_FIX[k]||{};f(F);try{localStorage.setItem('dashfix',JSON.stringify(DASH_FIX))}catch(e){}dashRebuild();show()};
  const add=(l,fn)=>{const e=document.createElement('button');e.textContent=l;e.style.cssText='height:34px;font:700 14px sans-serif;border:0;border-radius:6px;background:#2d6cdf;color:#fff;touch-action:manipulation';let t1=0,t2=0;const stop=()=>{clearTimeout(t1);clearInterval(t2)};
   e.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();fn();t1=setTimeout(()=>{t2=setInterval(fn,80)},320)});['pointerup','pointerleave','pointercancel'].forEach(t=>e.addEventListener(t,stop));gr.appendChild(e)};
  const st=.004;
  add('◀',ch(F=>F.u=(F.u||0)-st));add('▲',ch(F=>F.v=(F.v||0)+st));add('▼',ch(F=>F.v=(F.v||0)-st));add('▶',ch(F=>F.u=(F.u||0)+st));
  add('−',ch(F=>F.s=(F.s||1)*.96));add('+',ch(F=>F.s=(F.s||1)*1.04));add('↺',ch(F=>F.rx=(F.rx||0)-.04));add('↻',ch(F=>F.rx=(F.rx||0)+.04));
- add('N+',ch(F=>F.n=(F.n||0)+.003));add('N−',ch(F=>F.n=(F.n||0)-.003));add('Reset',ch(F=>{for(const k in F)delete F[k]}));add('Tutup',()=>{pan.style.display='none'});
+ add('N+',ch(F=>F.n=(F.n||0)+.003));add('N−',ch(F=>F.n=(F.n||0)-.003));add('Lapis',ch(F=>F.h=((F.h||0)+1)%4));add('Reset',ch(F=>{for(const k in F)delete F[k]}));add('Tutup',()=>{pan.style.display='none'});
  pan.appendChild(rd);pan.appendChild(gr);
  btn.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();pan.style.display=pan.style.display==='none'?'block':'none';show()});
  document.body.appendChild(btn);document.body.appendChild(pan)}catch(e){console.error('dashTuner',e)}}
