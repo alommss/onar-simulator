@@ -2112,7 +2112,7 @@ function frameOW(dt){
  {const fx=-Math.sin(ow.h),fz=-Math.cos(ow.h),wH=d=>{const x=ow.x+fx*d,z=ow.z+fz*d;return Math.max(gpcH(x,z),gpcH(x+fx*.22,z+fz*.22),gpcH(x-fx*.22,z-fz*.22))},Hf=wH(.67),Hr=wH(-.6),tgB=Hr+(Hf-Hr)*.6/1.27,tgY=ow.foot?gpcH(wk.x,wk.z):tgB,tgP=Math.atan2(Hf-Hr,1.27);
  gpcGY+=(tgY-gpcGY)*Math.min(1,dt*(tgY>gpcGY?45:18));gpcBY+=(tgB-gpcBY)*Math.min(1,dt*(tgB>gpcBY?45:18));gpcPitch+=(tgP-gpcPitch)*Math.min(1,dt*12);
  const sp=Math.sin(gpcPitch),nb=Math.max(Hr-(gpcBY-sp*.6),Hf-(gpcBY+sp*.67),0);if(nb>0)gpcBY+=nb;
- if(!ow.foot){const ng=Math.max(Hr-(gpcGY-sp*.6),Hf-(gpcGY+sp*.67),0);if(ng>0)gpcGY+=ng}}P.obj.position.set(ow.x,ow.foot?gpcBY:gpcGY,ow.z);P.obj.rotation.set(gpcPitch,ow.h,ow.foot?0:ow.steer*Math.min(.45,P.v/25)*.8);
+ if(!ow.foot){const ng=Math.max(Hr-(gpcGY-sp*.6),Hf-(gpcGY+sp*.67),0);if(ng>0)gpcGY+=ng}}P.obj.position.set(ow.x,ow.foot?gpcBY:gpcGY,ow.z);P.obj.rotation.set(gpcPitch,ow.h,ow.foot?0:ow.steer*LEANK(P.v)*.8);
  (P.obj.children[0]?.userData.W||[]).forEach(w=>w.rotation.x-=(P.v+(P.rv||0))*dt*FEEL/.22);
  {const tg=ow.foot?0:ow.steer*(.55-.3*Math.min(1,Math.abs(P.v)/25));P.stA=P.stA||0;P.stA+=(tg-P.stA)*Math.min(1,dt*14);steerSet(P.obj.children[0],P.stA)}
  if(ow.foot){const s=Math.sin(wk.t),a=Math.min(.9,Math.abs(wk.v)*.4),u=walker.userData;walker.position.set(wk.x,gpcGY,wk.z);walker.rotation.set(u.gm?0:-Math.min(.25,Math.abs(wk.v)*.04),wk.h,0);u.L.rotation.x=s*a;u.R.rotation.x=-s*a;u.AL.rotation.x=-s*a;u.AR.rotation.x=s*a;if(u.gm)u.gm(dt,Math.abs(wk.v));walker.visible=!pov}
@@ -2253,7 +2253,7 @@ try{(function(){
 /* ===== BARRIER BETON: X 45.4, Z -93.1 s/d -457.9 (dipasang rapat sepanjang tepi kanan jalan, di sisi dek jalan layang) =====
    Model: "Barrier béton" oleh aymen kmama (CC BY 4.0) - https://sketchfab.com/3d-models/barrier-beton-574405e702814309bae45ca661b66718
    Geometri asli tidak diubah; tekstur diperkecil ke 512 px (JPEG) supaya file game tidak berat. Ubah BRK.x untuk geser kiri/kanan, BRK.z0/z1 untuk panjangnya. Ada tabrakan (barWall). */
-const BRK_SHIFT=2; /* geser barrier ke KIRI (arah -X) sekian meter. Naikkan untuk lebih kiri lagi, 0 = posisi lama */
+const BRK_SHIFT=5; /* geser barrier ke KIRI (arah -X) sekian meter. Naikkan untuk lebih kiri lagi, 0 = posisi lama */
 const BRK={x:45.4-BRK_SHIFT,x0:45.4,z0:-93.1,z1:-457.9,hw:.4};window.BRK=BRK;
 try{(function(){
  const BRK_B64=__BIG[8];
@@ -2541,7 +2541,7 @@ window.ONL=(function(){
   send,
   tick(dt){
    if(!on)return;const now=performance.now();
-   if(now-sT>=100){sT=now;const f=ow.foot?1:0,x=+ow.x.toFixed(2),z=+ow.z.toFixed(2),h=+ow.h.toFixed(3),wx=f?+wk.x.toFixed(2):x,wz=f?+wk.z.toFixed(2):z,wh=f?+wk.h.toFixed(3):h,v=+(f?Math.abs(wk.v):P.v).toFixed(1),wp=+(WH.p||0).toFixed(3),rz=+(f?0:ow.steer*Math.min(.45,P.v/25)*.8).toFixed(3),su=(SUP.on&&!f)?1:0,rv=+((f?0:P.rv)||0).toFixed(2),bn=(P.burn&&!f)?1:0,th=+(f?0:(P.th||0)).toFixed(2),rp=Math.round((P.rpm||1250)/25)*25,dr=(typeof ENG!=='undefined'&&ENG.drod)?1:0,sa=+(f?0:(P.stA||0)).toFixed(3),hy=(!f&&pov)?+Math.max(-1.35,Math.min(1.35,Math.atan2(Math.sin(cyaw),Math.cos(cyaw)))).toFixed(2):0,key=[x,z,h,f,wx,wz,wh,wp,rz,su,rv,bn,th,rp,dr,sa,hy].join();
+   if(now-sT>=100){sT=now;const f=ow.foot?1:0,x=+ow.x.toFixed(2),z=+ow.z.toFixed(2),h=+ow.h.toFixed(3),wx=f?+wk.x.toFixed(2):x,wz=f?+wk.z.toFixed(2):z,wh=f?+wk.h.toFixed(3):h,v=+(f?Math.abs(wk.v):P.v).toFixed(1),wp=+(WH.p||0).toFixed(3),rz=+(f?0:ow.steer*LEANK(P.v)*.8).toFixed(3),su=(SUP.on&&!f)?1:0,rv=+((f?0:P.rv)||0).toFixed(2),bn=(P.burn&&!f)?1:0,th=+(f?0:(P.th||0)).toFixed(2),rp=Math.round((P.rpm||1250)/25)*25,dr=(typeof ENG!=='undefined'&&ENG.drod)?1:0,sa=+(f?0:(P.stA||0)).toFixed(3),hy=(!f&&pov)?+Math.max(-1.35,Math.min(1.35,Math.atan2(Math.sin(cyaw),Math.cos(cyaw)))).toFixed(2):0,key=[x,z,h,f,wx,wz,wh,wp,rz,su,rv,bn,th,rp,dr,sa,hy].join();
     if(key!==lk||now-lT>3000){lk=key;lT=now;send({n:USERNAME,vm:VEHSEL==='vario_mod'?1:0,pb:(PAINT&&PAINT.b)||'',pv:(PAINT&&PAINT.v)||'',x,z,h,v,f,wx,wz,wh,wp,rz,su,rv,bn,th,rp,dr,sa,hy,t:D.serverTimestamp()})}}
    const L0=ow.foot?wk:ow,LX=L0.x,LZ=L0.z,k=Math.min(1,dt*10);
    for(const [id,r] of pl){
@@ -2885,6 +2885,9 @@ function paintApply(root){if(!root||!PAINT)return;root.traverse(o=>{const k=o.is
   if(k==='b'){m.emissive.copy(c).multiplyScalar(.22)}else{m.emissive.setRGB(0,0,0);m.metalness=.65;m.roughness=.25}}
  else{const d=o.userData.dc,e=o.userData.de,mr=o.userData.dm;m.color.setRGB(d[0],d[1],d[2]);m.emissive.setRGB(e[0],e[1],e[2]);m.metalness=mr[0];m.roughness=mr[1]}})}
 const PDEF={b:[.92,.14,.6],v:[.74,.74,.76]};
+/* KEMIRINGAN MOTOR SAAT BELOK: LEAN_MIN = miring dasar di 0 km/h, LEAN_RATE = tambahan per kecepatan, LEAN_MAX = batas. Naikkan LEAN_MIN/LEAN_RATE kalau masih kurang miring. */
+window.LEAN_MIN=.2;window.LEAN_RATE=1/12;window.LEAN_MAX=.5;
+function LEANK(v){return Math.min(window.LEAN_MAX,window.LEAN_MIN+Math.abs(v)*window.LEAN_RATE)}
 /* BODY: selain material 'bodiputi', material berwarna pink muda (area sekitar speedometer) juga ikut di-repaint.
    Kalau masih ada bagian yang tidak berubah, lihat Console (log '[VARIO mat]') lalu isi window.BODY_EXTRA = /namaMaterial/i */
 window.BODY_EXTRA=window.BODY_EXTRA||null;
