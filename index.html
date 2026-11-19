@@ -910,27 +910,27 @@ const DASH_SET=new Set();let DASH_READY=false,DASH_LIT=null,DASH_DIM=null,DASH_I
  DASH_LIT=a;DASH_DIM=b;DASH_IW=w;DASH_IH=h;DASH_READY=true;DASH_SET.forEach(d=>{dashDraw(d);d.tex.needsUpdate=true})}catch(e){console.error('DASH img',e)}};im.src=DASH_IMG_SRC}catch(e){console.error('DASH',e)}})();
 const DASH_SEG=[0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f]; // bit0..6 = segmen a,b,c,d,e,f,g
 function dashRR(x,l,t,w,h,r){x.moveTo(l+r,t);x.lineTo(l+w-r,t);x.arcTo(l+w,t,l+w,t+r,r);x.lineTo(l+w,t+h-r);x.arcTo(l+w,t+h,l+w-r,t+h,r);x.lineTo(l+r,t+h);x.arcTo(l,t+h,l,t+h-r,r);x.lineTo(l,t+r);x.arcTo(l,t,l+r,t,r);x.closePath()}
-function dashDigit(x,ox,oy,w,h,t,v,lit,ghost,glow){
- const g=t*.14,hh=h/2,m=v<0?0:DASH_SEG[v];
+window.DASH_LAYOUT=window.DASH_LAYOUT||{};
+/* Layout (pecahan 0..1 dari area speedometer): bx/by/bw = posisi & lebar bar RPM (bx,by = pojok kiri-atas); dx/dy = titik tengah angka; dh = tinggi angka */
+const DASH_LAY={bx:.36,by:.07,bw:.42,dx:.55,dy:.42,dh:.32};
+function dashDigit(x,ox,oy,w,h,t,v,lit,edge){
+ const g=t*.14,hh=h/2,m=v<0?0:DASH_SEG[v];if(!m)return;
  const hs=cy=>{const x1=ox+t*.5+g,x2=ox+w-t*.5-g;x.moveTo(x1,cy);x.lineTo(x1+t*.5,cy-t*.5);x.lineTo(x2-t*.5,cy-t*.5);x.lineTo(x2,cy);x.lineTo(x2-t*.5,cy+t*.5);x.lineTo(x1+t*.5,cy+t*.5);x.closePath()};
  const vs=(cx,y1,y2)=>{x.moveTo(cx,y1);x.lineTo(cx+t*.5,y1+t*.5);x.lineTo(cx+t*.5,y2-t*.5);x.lineTo(cx,y2);x.lineTo(cx-t*.5,y2-t*.5);x.lineTo(cx-t*.5,y1+t*.5);x.closePath()};
  const sg=[()=>hs(oy+t*.5),()=>vs(ox+w-t*.5,oy+t*.5+g,oy+hh-g),()=>vs(ox+w-t*.5,oy+hh+g,oy+h-t*.5-g),()=>hs(oy+h-t*.5),()=>vs(ox+t*.5,oy+hh+g,oy+h-t*.5-g),()=>vs(ox+t*.5,oy+t*.5+g,oy+hh-g),()=>hs(oy+hh)];
- x.shadowBlur=0;x.fillStyle=ghost;for(let i=0;i<7;i++){x.beginPath();sg[i]();x.fill()}
- if(!m)return;x.fillStyle=lit;x.shadowColor=glow;x.shadowBlur=t*1.1;for(let i=0;i<7;i++)if(m>>i&1){x.beginPath();sg[i]();x.fill()}x.shadowBlur=0}
-function dashDraw(d){const x=d.x,W=d.cv.width,H=d.cv.height,p=H*.085;
- x.setTransform(1,0,0,1,0,0);x.shadowBlur=0;x.clearRect(0,0,W,H);
- x.fillStyle='rgba(3,7,12,.96)';x.beginPath();dashRR(x,0,0,W,H,H*.11);x.fill();
- const lw=Math.max(2,H*.012);x.lineWidth=lw;x.strokeStyle='rgba(120,200,255,.3)';x.beginPath();dashRR(x,lw/2,lw/2,W-lw,H-lw,H*.105);x.stroke();
- let bw=W-2*p,bh=bw*DASH_IMG_AR;if(bh>H*.3){bh=H*.3;bw=bh/DASH_IMG_AR}
- const bx=(W-bw)/2,by=p*1.15;
- if(DASH_READY){x.drawImage(DASH_DIM,0,0,DASH_IW,DASH_IH,bx,by,bw,bh);
+ x.lineJoin='round';x.lineWidth=t*.55;x.strokeStyle=edge;x.fillStyle=edge;
+ for(let i=0;i<7;i++)if(m>>i&1){x.beginPath();sg[i]();x.fill();x.stroke()}
+ x.fillStyle=lit;for(let i=0;i<7;i++)if(m>>i&1){x.beginPath();sg[i]();x.fill()}}
+function dashDraw(d){const x=d.x,W=d.cv.width,H=d.cv.height,L=d.lay;
+ x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,W,H);
+ if(DASH_READY){const bw=W*L.bw,bh=bw*DASH_IMG_AR,bx=W*L.bx,by=H*L.by;
+  x.globalAlpha=.3;x.drawImage(DASH_LIT,0,0,DASH_IW,DASH_IH,bx,by,bw,bh);x.globalAlpha=1;
   for(let i=0;i<d.n&&i<DASH_BARS.length;i++){const s=DASH_BARS[i];x.drawImage(DASH_LIT,s[0]*DASH_IW,0,(s[1]-s[0])*DASH_IW,DASH_IH,bx+s[0]*bw,by,(s[1]-s[0])*bw,bh)}}
- const ay=by+bh+H*.07,dh=H-p-ay,dw=dh*.5,t=dw*.19,sp=dw*.3,tw=3*dw+2*sp,tl=H*.36,gp=H*.05,sx=Math.max(p,(W-(tw+gp+tl))/2),s=d.s;
- x.save();x.translate(sx,ay+dh);x.transform(1,0,-.1,1,0,0);x.translate(0,-dh);
+ const dh=H*L.dh,dw=dh*.5,t=dw*.2,sp=dw*.3,tw=3*dw+2*sp,s=d.s;
+ x.save();x.translate(W*L.dx-tw/2,H*L.dy+dh/2);x.transform(1,0,-.1,1,0,0);x.translate(0,-dh);
  const dg=[s>=100?Math.floor(s/100)%10:-1,s>=10?Math.floor(s/10)%10:-1,s%10];
- for(let i=0;i<3;i++)dashDigit(x,i*(dw+sp),0,dw,dh,t,dg[i],'#e9fbff','rgba(160,215,255,.07)','#5fd4ff');
- x.restore();
- x.shadowBlur=0;x.font='700 '+Math.round(H*.115)+'px system-ui,-apple-system,Arial,sans-serif';x.textBaseline='alphabetic';x.fillStyle='rgba(190,230,255,.85)';x.fillText('km/h',sx+tw+gp,ay+dh)}
+ for(let i=0;i<3;i++)dashDigit(x,i*(dw+sp),0,dw,dh,t,dg[i],'#f4fdff','rgba(0,12,24,.9)');
+ x.restore()}
 function dashSet(b,kmh,rpm){const d=b&&b.dash;if(!d)return;
  const s=Math.min(999,Math.max(0,Math.round(Math.abs(kmh)||0))),n=Math.max(0,Math.min(DASH_BARS.length,Math.round(((rpm||1250)-1000)/8000*DASH_BARS.length)));
  if(d.k===0&&d.s===s&&d.n===n)return;d.k=0;d.s=s;d.n=n;dashDraw(d);d.tex.needsUpdate=true}
@@ -952,8 +952,12 @@ function dashAttach(nb,b,kind){try{
   const N=pa.count,st=Math.max(1,Math.floor(N/4000)),pts=[],sn=new V(),t=new V();
   for(let i=0;i<N;i+=st){t.fromBufferAttribute(pa,i).applyMatrix4(rel);pts.push(t.clone());if(na)sn.add(new V().fromBufferAttribute(na,i).applyMatrix3(nm))}
   const bb=new THREE.Box3().setFromPoints(pts),sz=bb.getSize(new V());
-  if(na&&sn.length()>pts.length*.25)n.copy(sn).normalize();
-  else{n.set(0,0,0);const ax=sz.x<=sz.y&&sz.x<=sz.z?'x':sz.y<=sz.z?'y':'z';n[ax]=1}
+  {const cm=new V();pts.forEach(q=>cm.add(q));cm.divideScalar(pts.length);const C=[0,0,0,0,0,0];
+   pts.forEach(q=>{const a=q.x-cm.x,b=q.y-cm.y,c=q.z-cm.z;C[0]+=a*a;C[1]+=a*b;C[2]+=a*c;C[3]+=b*b;C[4]+=b*c;C[5]+=c*c});
+   const mv=v=>new V(C[0]*v.x+C[1]*v.y+C[2]*v.z,C[1]*v.x+C[3]*v.y+C[4]*v.z,C[2]*v.x+C[4]*v.y+C[5]*v.z);
+   let e1=new V(1,.7,.4).normalize();for(let i=0;i<30;i++)e1=mv(e1).normalize();
+   let e2=new V(.3,1,.6);e2.addScaledVector(e1,-e2.dot(e1)).normalize();for(let i=0;i<30;i++){e2=mv(e2);e2.addScaledVector(e1,-e2.dot(e1));e2.normalize()}
+   n.crossVectors(e1,e2).normalize();if(!(n.length()>.5))n.set(0,.55,.835)}
   if(n.z+.6*n.y<0)n.multiplyScalar(-1);
   if(Math.abs(n.z)+Math.abs(n.y)<.25)n.set(0,.55,.835);
   ux.crossVectors(up,n);if(ux.length()<.25){ux.crossVectors(new V(0,0,-1),n)}ux.normalize();uy.crossVectors(n,ux).normalize();
@@ -964,7 +968,7 @@ function dashAttach(nb,b,kind){try{
  else if(kind==='proc'){cen.set(0,1.21,-.43);w=.2;h=.1;n.set(0,.5,.87)}
  else if(nb.userData&&nb.userData.S){const bb=new THREE.Box3().setFromObject(nb.userData.S);if(!bb.isEmpty())cen.set(0,bb.max.y-.07,bb.max.z-.2)}
  if(!best){n.normalize();ux.crossVectors(up,n).normalize();uy.crossVectors(n,ux).normalize()}
- const asp=Math.max(1.5,Math.min(2.4,w/Math.max(h,.001)));let pw=Math.min(w*.95,h*.95*asp);pw*=F.s||1;const ph=pw/asp;
+ const asp=Math.max(1,Math.min(3.2,w/Math.max(h,.001)));let pw=w*(F.s||1);const ph=pw/asp;
  const cv=document.createElement('canvas');cv.height=256;cv.width=Math.round(256*asp);
  const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=Math.min(8,MAXA);
  const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,toneMapped:false,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
@@ -973,8 +977,8 @@ function dashAttach(nb,b,kind){try{
  const pos=cen.clone().addScaledVector(n,Math.max(.002,w*.02)).add(new V(F.x||0,F.y||0,F.z||0));
  const T=new THREE.Matrix4().compose(pos,q,new V(pw,ph,1)),pr=inv.clone().multiply(par.matrixWorld),L=pr.clone().invert().multiply(T);
  L.decompose(me.position,me.quaternion,me.scale);par.add(me);
- const d={mesh:me,cv,x:cv.getContext('2d'),tex,s:-1,n:-1,k:-1};b.dash=d;DASH_SET.add(d);dashSet(b,0,1250);
- console.log('[DASH]',kind,'mesh:',src,'ukuran',w.toFixed(3)+'x'+h.toFixed(3)+' m','pos',pos.toArray().map(v=>+v.toFixed(3)).join(','))
+ const d={mesh:me,cv,x:cv.getContext('2d'),tex,s:-1,n:-1,k:-1,lay:Object.assign({},DASH_LAY,(window.DASH_LAYOUT||{})[kind]||{})};b.dash=d;DASH_SET.add(d);dashSet(b,0,1250);
+ console.log('[DASH]',kind,'mesh:',src,'ukuran',w.toFixed(3)+'x'+h.toFixed(3)+' m','normal',n.toArray().map(v=>+v.toFixed(2)).join(','),'pos',pos.toArray().map(v=>+v.toFixed(3)).join(','))
 }catch(e){console.error('dashAttach',e)}}
 function skin(b,col,jac){b.sk=[col,jac];dashFree(b);while(b.obj.children.length)b.obj.remove(b.obj.children[0]);const um=(b.mod!==undefined?!!b.mod:(b.x<0&&VEHSEL==='vario_mod'))&&!!MODG;if(custom||um){const sr=um?MODG:custom,nb=norm(sr);if(sr.userData.hq||sr.userData.lq)envBike(nb,renderer,.55);if(b.x<0)paintApply(nb);b.obj.add(nb);dashAttach(nb,b,um?'vario_mod':(sr.userData.lq?'lq':'vario150'));b.obj.add((b.x<0&&typeof gRider==='function'&&gRider(jac))||rider(jac))}else{const pb=procBike(col,jac);b.obj.add(pb);dashAttach(pb,b,'proc')}b.obj.traverse(o=>o.layers.set(1))}
 
