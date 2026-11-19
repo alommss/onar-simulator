@@ -2486,10 +2486,12 @@ window.ONL=(function(){
  return{
   get on(){return on},
   async connect(){
-   if(!D||!db||!uid){const [A,AU,DB]=await Promise.all([import(B+'firebase-app.js'),import(B+'firebase-auth.js'),import(B+'firebase-database.js')]);
+   if(D&&db&&uid)return;
+   if(!this._cp)this._cp=(async()=>{const [A,AU,DB]=await Promise.all([import(B+'firebase-app.js'),import(B+'firebase-auth.js'),import(B+'firebase-database.js')]);
     const app=(A.getApps&&A.getApps().length)?A.getApp():A.initializeApp(FB_CFG),auth=AU.getAuth(app),db2=DB.getDatabase(app);
     if(!auth.currentUser)await AU.signInAnonymously(auth);
-    uid=auth.currentUser.uid;db=db2;D=DB}
+    uid=auth.currentUser.uid;db=db2;D=DB})().catch(e=>{this._cp=null;throw e});
+   return this._cp
   },
   async join(room){if(room)ROOM=room;
    const data={n:USERNAME,x:SPAWN.x,z:SPAWN.z,h:SPAWN.h,v:0,f:0,wx:SPAWN.x,wz:SPAWN.z,wh:SPAWN.h,pb:(PAINT&&PAINT.b)||'',pv:(PAINT&&PAINT.v)||'',vm:VEHSEL==='vario_mod'?1:0,t:D.serverTimestamp()};
@@ -2526,7 +2528,7 @@ window.ONL=(function(){
    await D.set(mr,{n:name,pw:phash(key,pw),o:uid,t:D.serverTimestamp()});ownRoom=key;try{D.onDisconnect(mr).remove()}catch(e){}
    await this.join(key)},
   async count(room){await this.connect();const sn=await D.get(D.ref(db,'rooms/'+room+'/players'));return sn.numChildren()},
-  async listRooms(){await this.connect();const sn=await D.get(D.ref(db,'rooms')),out=[];
+  async listRooms(){await this.connect();const sn=await D.get(D.ref(db,'rooms')),out=[];this.cnt={};['server1','server2'].forEach(k=>{this.cnt[k]=sn.child(k+'/players').numChildren()});
    sn.forEach(c=>{const m=c.child('meta').val();if(m&&String(c.key).indexOf('r_')===0)out.push({key:c.key,name:String(m.n||c.key).slice(0,20),lock:!!m.pw,count:c.child('players').numChildren()})});return out},
   async joinRoom(key,pw){await this.connect();const sn=await D.get(D.ref(db,'rooms/'+key+'/meta'));
    if(!sn.exists())throw Object.assign(new Error('Room sudah tidak ada.'),{code:'room-gone'});
@@ -2607,8 +2609,9 @@ setUN();
  const enter=()=>{off('mpScr');off('mpMk');off('mpPw');audio();reset();setMode('ow');cyaw=0;cpitch=.25;startOW();st='ow';hideHome()};
  async function go(fn,setT){if(busy)return;busy=true;setT('Menghubungkan\u2026');
   try{await fn();setT('');enter()}catch(e){console.error(e);try{ONL.leave()}catch(_){}setT(ONL.err(e))}busy=false}
+ const setCnt=()=>{if(!ONL.cnt)return;[['mpS1','server1'],['mpS2','server2']].forEach(([id,k])=>{const el=$q(id).querySelector('small');if(el)el.textContent='\u25CF '+ONL.cnt[k]+' pemain'})};
  async function loadRooms(first){const box=$q('mpRooms');if(first)box.innerHTML='';
-  try{const r=await ONL.listRooms();
+  try{const r=await ONL.listRooms();setCnt();
    if(!r.length){box.innerHTML='<p style="margin:14px 0 0;opacity:.7">Belum ada room.</p>';return}
    const f=document.createDocumentFragment(),h=document.createElement('p');h.style.margin='14px 0 0';h.textContent='ROOM TERSEDIA';f.appendChild(h);
    r.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='srv';b.innerHTML='<i></i><span></span><small></small>';
@@ -2618,7 +2621,7 @@ setUN();
   catch(e){console.error(e);const c=String((e&&e.code)||'')+' '+String((e&&e.message)||'');
    box.innerHTML='<p style="margin:14px 0 0;color:#ffb0a0">'+(/permission/i.test(c)?'Daftar room ditolak Firebase: aturan (Rules) belum dipasang.':'Gagal memuat daftar room.')+'</p>'}}
  async function loadCounts(){for(const [id,room] of [['mpS1','server1'],['mpS2','server2']]){const el=$q(id).querySelector('small');if(!el)continue;el.textContent='…';
-   try{const n=await ONL.count(room);el.textContent='● '+n+' pemain'}catch(e){console.error(e);el.textContent='?'}}}
+   try{const n=await ONL.count(room);el.textContent='● '+n+' pemain'}catch(e){console.error(e);const c=String((e&&e.code)||'')+' '+String((e&&e.message)||'');el.textContent=(ONL.cnt&&ONL.cnt[room]!=null)?'● '+ONL.cnt[room]+' pemain':(/permission/i.test(c)?'ditolak':'?')}}}
  window.mpOpen=()=>{setS('');on('mpScr');loadRooms(true);loadCounts();clearInterval(window._rl);window._rl=setInterval(()=>{if($q('mpScr').classList.contains('on'))loadRooms();else clearInterval(window._rl)},5000)};
  tapHome('hMP',()=>window.mpOpen());
  tapHome('mpS1',()=>go(()=>ONL.connect().then(()=>ONL.join('server1')),setS));
