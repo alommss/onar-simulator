@@ -2879,6 +2879,17 @@ var PAINT={b:null,v:null},PAINT_DIRTY=false,PU=null;
 try{const o=JSON.parse(localStorage.getItem('dmPaint')||'null');if(o&&typeof o==='object')['b','v'].forEach(k=>{if(typeof o[k]==='string'&&/^#[0-9a-f]{6}$/i.test(o[k]))PAINT[k]=o[k]})}catch(e){}
 function savePaint(){PAINT_DIRTY=true;try{localStorage.setItem('dmPaint',JSON.stringify(PAINT))}catch(e){}}
 function paintApply(root){if(!root||!PAINT)return;root.traverse(o=>{if(!o.isMesh||!o.userData)return;
+ if(o.userData.sp&&o.material&&!Array.isArray(o.material)){ // foto speedometer: hanya bagian pink pada tekstur yang diwarnai, sisanya tetap hitam
+  let m=o.material;
+  if(!m.userData||!m.userData.pc){m=m.clone();m.userData=Object.assign({},m.userData,{pc:1});
+   const U={value:new THREE.Vector3(0,0,0)},ON={value:0};m.userData.spU=U;m.userData.spON=ON;
+   m.onBeforeCompile=sh=>{sh.uniforms.uSpC=U;sh.uniforms.uSpOn=ON;
+    sh.fragmentShader='uniform vec3 uSpC;uniform float uSpOn;\n'+sh.fragmentShader.replace('#include <map_fragment>',
+     '#include <map_fragment>\n#ifdef USE_MAP\n{float pk=smoothstep(.02,.10,min(texelColor.r,texelColor.b)-texelColor.g)*uSpOn;float lm=dot(texelColor.rgb,vec3(.2126,.7152,.0722));diffuseColor.rgb=mix(diffuseColor.rgb,uSpC*clamp(lm*2.4,0.,1.4),pk);}\n#endif')};
+   m.customProgramCacheKey=()=>'spPaint';m.needsUpdate=true;o.material=m}
+  const hx=PAINT.b;
+  if(hx){const c=new THREE.Color(hx);c.convertSRGBToLinear();m.userData.spU.value.set(c.r,c.g,c.b);m.userData.spON.value=1}else m.userData.spON.value=0;
+  return}
  const arr=Array.isArray(o.material),ms=arr?o.material:[o.material],pm=o.userData.pm;
  if(arr?!pm:!o.userData.pk)return;
  const out=ms.map((m0,j)=>{
@@ -3191,6 +3202,7 @@ async function varioFromBuf(buf){
   {const isArr=Array.isArray(me.material),ms=isArr?me.material:[me.material],rim=rimOf(me),pm=[];let any=false;
    ms.forEach((mt,j)=>{pm[j]=null;if(!mt||!mt.color||!mt.emissive)return;const nm=mt.name||'',key=(rim||(w>=0&&/^ruji/i.test(nm)))?'v':(isBodyMat(mt,nm)?'b':'');
     if(key){const u={k:key,dc:mt.color.toArray(),de:mt.emissive.toArray(),dm:[mt.metalness,mt.roughness]};pm[j]=u;any=true;if(!isArr){me.userData.pk=key;me.userData.dc=u.dc;me.userData.de=u.de;me.userData.dm=u.dm}}});
+   if(!isArr&&ms[0]&&ms[0].map&&/speedometer/i.test(ms[0].name||''))me.userData.sp=1;
    if(isArr&&any)me.userData.pm=pm} // REPAINT: tandai BODY & VELG (mendukung multi-material)
   if(me.parent)me.parent.remove(me);
   (w>=0?W[w]:g).add(me)});
