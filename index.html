@@ -2583,7 +2583,7 @@ window.ONL=(function(){
    const L0=ow.foot?wk:ow,LX=L0.x,LZ=L0.z,k=Math.min(1,dt*10);
    for(const [id,r] of pl){
     if(now-r.seen>20000){drop(id);continue}
-    r.x+=(r.tx-r.x)*k;r.z+=(r.tz-r.z)*k;let dh=r.ty-r.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));r.h+=dh*k;
+    {const kh=Math.min(1,dt*14),vel=r.f?0:Math.max(0,r.v||0),ag=Math.min(.35,(now-r.seen)/1000);if(ag<.35){r.x+=-Math.sin(r.h)*vel*dt;r.z+=-Math.cos(r.h)*vel*dt}const pf=vel*(ag+.06),px=r.tx-Math.sin(r.ty)*pf,pz=r.tz-Math.cos(r.ty)*pf,kc=Math.min(1,dt*6);r.x+=(px-r.x)*kc;r.z+=(pz-r.z)*kc;let dh=r.ty-r.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));r.h+=dh*kh}
     if(Math.hypot(r.tx-r.x,r.tz-r.z)>40){r.x=r.tx;r.z=r.tz}
     {const fx=-Math.sin(r.h),fz=-Math.cos(r.h),wH=d=>{const x=r.x+fx*d,z=r.z+fz*d;return Math.max(gpcH(x,z),gpcH(x+fx*.22,z+fz*.22),gpcH(x-fx*.22,z-fz*.22))},Hf=wH(.67),Hr=wH(-.6),tgB=Hr+(Hf-Hr)*.6/1.27;
      r.y+=(tgB-r.y)*Math.min(1,dt*(tgB>r.y?45:18));r.pt+=(Math.atan2(Hf-Hr,1.27)-r.pt)*Math.min(1,dt*12);
@@ -2650,14 +2650,19 @@ setUN();
  const enter=()=>{off('mpScr');off('mpMk');off('mpPw');audio();reset();setMode('ow');cyaw=0;cpitch=.25;startOW();st='ow';hideHome()};
  async function go(fn,setT){if(busy)return;busy=true;setT('Menghubungkan\u2026');
   try{await fn();setT('');enter()}catch(e){console.error(e);try{ONL.leave()}catch(_){}setT(ONL.err(e))}busy=false}
- async function loadRooms(){const box=$q('mpRooms');box.innerHTML='';
-  try{const r=await ONL.listRooms();if(!r.length)return;box.innerHTML='<p style="margin:14px 0 0">ROOM TERSEDIA</p>';
+ async function loadRooms(first){const box=$q('mpRooms');if(first)box.innerHTML='';
+  try{const r=await ONL.listRooms();
+   if(!r.length){box.innerHTML='<p style="margin:14px 0 0;opacity:.7">Belum ada room.</p>';return}
+   const f=document.createDocumentFragment(),h=document.createElement('p');h.style.margin='14px 0 0';h.textContent='ROOM TERSEDIA';f.appendChild(h);
    r.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='srv';b.innerHTML='<i></i><span></span><small></small>';
     b.children[1].textContent=(x.lock?'\uD83D\uDD12 ':'')+x.name;b.children[2].textContent=x.count+' pemain';
-    b.addEventListener('click',()=>{if(x.lock){pend=x;$q('pwN').textContent=x.name;$q('pwI').value='';$q('pwSt').textContent='';on('mpPw');setTimeout(()=>$q('pwI').focus(),60)}else go(()=>ONL.joinRoom(x.key,''),setS)});box.appendChild(b)})}catch(e){console.error(e)}}
+    b.addEventListener('click',()=>{if(x.lock){pend=x;$q('pwN').textContent=x.name;$q('pwI').value='';$q('pwSt').textContent='';on('mpPw');setTimeout(()=>$q('pwI').focus(),60)}else go(()=>ONL.joinRoom(x.key,''),setS)});f.appendChild(b)});
+   box.innerHTML='';box.appendChild(f)}
+  catch(e){console.error(e);const c=String((e&&e.code)||'')+' '+String((e&&e.message)||'');
+   box.innerHTML='<p style="margin:14px 0 0;color:#ffb0a0">'+(/permission/i.test(c)?'Daftar room ditolak Firebase: aturan (Rules) belum dipasang.':'Gagal memuat daftar room.')+'</p>'}}
  async function loadCounts(){for(const [id,room] of [['mpS1','server1'],['mpS2','server2']]){const el=$q(id).querySelector('small');if(!el)continue;el.textContent='…';
    try{const n=await ONL.count(room);el.textContent='● '+n+' pemain'}catch(e){console.error(e);el.textContent='?'}}}
- window.mpOpen=()=>{setS('');on('mpScr');loadRooms();loadCounts()};
+ window.mpOpen=()=>{setS('');on('mpScr');loadRooms(true);loadCounts();clearInterval(window._rl);window._rl=setInterval(()=>{if($q('mpScr').classList.contains('on'))loadRooms();else clearInterval(window._rl)},5000)};
  tapHome('hMP',()=>window.mpOpen());
  tapHome('mpS1',()=>go(()=>ONL.connect().then(()=>ONL.join('server1')),setS));
  tapHome('mpS2',()=>go(()=>ONL.connect().then(()=>ONL.join('server2')),setS));
