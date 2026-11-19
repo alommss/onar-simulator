@@ -92,6 +92,22 @@ jobs:
           mkdir -p ~/.android
           echo "$KS_B64" | tr -d '[:space:]' | base64 -d > ~/.android/debug.keystore
           keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey || { echo "::error::Keystore di secret tidak valid"; exit 1; }
+      - name: Paksa Gradle pakai keystore tetap
+        run: |
+          cp ~/.android/debug.keystore "$GITHUB_WORKSPACE/fixed.keystore"
+          cat >> android/app/build.gradle <<'GRADLE'
+
+          android {
+              signingConfigs {
+                  debug {
+                      storeFile file("${rootProject.projectDir}/../fixed.keystore")
+                      storePassword "android"
+                      keyAlias "androiddebugkey"
+                      keyPassword "android"
+                  }
+              }
+          }
+          GRADLE
       - name: Build APK
         run: |
           cd android
@@ -100,9 +116,13 @@ jobs:
       - name: Cek APK valid
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk onar-simulator.apk
+          KS=$(keytool -list -v -keystore fixed.keystore -storepass android | grep "SHA256:" | head -1 | sed 's/^[[:space:]]*//')
+          APK=$(keytool -printcert -jarfile onar-simulator.apk | grep "SHA256:" | head -1 | sed 's/^[[:space:]]*//')
+          echo "Keystore tetap : $KS"
+          echo "Tanda tangan APK: $APK"
+          if [ "$KS" != "$APK" ]; then echo "::error::APK TIDAK ditandatangani keystore tetap"; exit 1; fi
           BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
           $BT/apksigner verify --verbose --print-certs onar-simulator.apk
-          $BT/aapt dump badging onar-simulator.apk | head -5
       - name: Terbitkan ke Releases
         env:
           GH_TOKEN: ${{ github.token }}
