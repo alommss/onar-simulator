@@ -1879,7 +1879,7 @@ const wm=new THREE.MeshStandardMaterial({color:0x9a968c,roughness:.9,emissive:0x
 /* ===== JALAN TOL LAYANG (replika foto referensi 3) =====
    GJ.z0 = awal bagian jalan (z dunia). -530 = 200 m setelah SPBU Shell (z=-330). Ubah GJ.z0 untuk memindahkan, GJ.L = panjang.
    Koordinat lokal: x=0 = jalur motor (x dunia 40), kanan = +x; d = jarak maju (ke arah -z). */
-const GJ={z0:-530,L:640};
+const GJ={z0:-530,L:640};window.GJ_Z0=GJ.z0;
 (function(){try{
 const G=new THREE.Group();G.position.set(40,0,GJ.z0);owG.add(G);
 const L=GJ.L,O3=new THREE.Object3D(),R=k=>Math.abs(Math.sin(k*12.9898+4.1)*43758.5453)%1;
@@ -1892,9 +1892,9 @@ const F=(w,l,m,x,y,d)=>{const q=add(new THREE.Mesh(new THREE.PlaneGeometry(w,l),
 const I=(g,m,a,col)=>{const im=new THREE.InstancedMesh(g,m,a.length),c=new THREE.Color();a.forEach(([x,y,d,sx,sy,sz,ry,cc],i)=>{O3.position.set(x,y,-d);O3.rotation.set(0,ry||0,0);O3.scale.set(sx||1,sy||1,sz||1);O3.updateMatrix();im.setMatrixAt(i,O3.matrix);if(col)im.setColorAt(i,c.set(cc))});O3.scale.set(1,1,1);im.frustumCulled=false;G.add(im);return im};
 const conc=std('#3a3c41',.9),conc2=std('#45474d',.85);conc.fog=conc2.fog=false;
 // ---- tanah: paving/pelataran di seluruh area (menutup jalan petak bawaan) ----
-const gT=ctex(128,128,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);nz(g,w,h,500,.06)},34,L/4);
+const gT=ctex(128,128,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);nz(g,w,h,500,.06)},34*12,L/4);
 const gM=M(gT,.9);gM.polygonOffset=true;gM.polygonOffsetFactor=-1;gM.polygonOffsetUnits=-1;
-F(170,L,gM,10,.02,L/2);
+F(2040,L,gM,10,.02,L/2);
 // ---- badan jalan: jalur sepeda hijau, 2 lajur kiri, 3 lajur utama, gore bergaris miring, jalur kanan beraspal baru ----
 const U0=-14.5,UW=39.5,PX=16,X=u=>(u-U0)*PX;
 const rT=ctex(Math.round(UW*PX),512,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);g.fillStyle='#202127';g.fillRect(X(13.5),0,X(24.5)-X(13.5),h);
@@ -2191,8 +2191,9 @@ try{(function(){
  const mat=t=>new THREE.MeshStandardMaterial({map:t,roughness:.3,metalness:.3,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-4});
  const t=ctex(512,512,(g,w,h)=>{g.fillStyle='#17181c';g.fillRect(0,0,w,h);
   sgrain(g,w,h,4000,.04);},XL/80,ZL/80);
- const m=new THREE.Mesh(new THREE.PlaneGeometry(XL,ZL),mat(t));
- m.rotation.x=-Math.PI/2;m.position.set(X0-XL/2,Y,LFT_Z0-ZL/2);owG.add(m);
+ const ZE=Math.max(10,LFT_Z0-(window.GJ_Z0!=null?window.GJ_Z0:-530)); /* berhenti di Z -530: setelahnya tanah tol yang menutup (hindari 2 bidang menumpuk = kedip hitam) */
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(XL,ZE),mat(t));
+ m.rotation.x=-Math.PI/2;m.position.set(X0-XL/2,Y,LFT_Z0-ZE/2);owG.add(m);
  if(SW){
   const s=ctex(8,8,(g,w,h)=>{g.fillStyle='#3b3b42';g.fillRect(0,0,w,h)},1,1);
   const sm=new THREE.Mesh(new THREE.PlaneGeometry(X0-14.84,ZL),mat(s));
@@ -2877,13 +2878,19 @@ const UPG=[['repaint','REPAINT',5],['knalpot','KNALPOT',5],['velg','VELG & BAN',
 var PAINT={b:null,v:null},PAINT_DIRTY=false,PU=null;
 try{const o=JSON.parse(localStorage.getItem('dmPaint')||'null');if(o&&typeof o==='object')['b','v'].forEach(k=>{if(typeof o[k]==='string'&&/^#[0-9a-f]{6}$/i.test(o[k]))PAINT[k]=o[k]})}catch(e){}
 function savePaint(){PAINT_DIRTY=true;try{localStorage.setItem('dmPaint',JSON.stringify(PAINT))}catch(e){}}
-function paintApply(root){if(!root||!PAINT)return;root.traverse(o=>{const k=o.isMesh&&o.userData&&o.userData.pk;if(!k)return;
- let m=o.material;if(!m||Array.isArray(m))return;
- if(!m.userData||!m.userData.pc){m=m.clone();m.userData=Object.assign({},m.userData,{pc:1});o.material=m}
- const hx=PAINT[k];
- if(hx){const c=new THREE.Color(hx);c.convertSRGBToLinear();m.color.copy(c);
-  if(k==='b'){m.emissive.copy(c).multiplyScalar(.22)}else{m.emissive.setRGB(0,0,0);m.metalness=.65;m.roughness=.25}}
- else{const d=o.userData.dc,e=o.userData.de,mr=o.userData.dm;m.color.setRGB(d[0],d[1],d[2]);m.emissive.setRGB(e[0],e[1],e[2]);m.metalness=mr[0];m.roughness=mr[1]}})}
+function paintApply(root){if(!root||!PAINT)return;root.traverse(o=>{if(!o.isMesh||!o.userData)return;
+ const arr=Array.isArray(o.material),ms=arr?o.material:[o.material],pm=o.userData.pm;
+ if(arr?!pm:!o.userData.pk)return;
+ const out=ms.map((m0,j)=>{
+  const u=arr?pm[j]:{k:o.userData.pk,dc:o.userData.dc,de:o.userData.de,dm:o.userData.dm};
+  const k=u&&u.k;if(!k||!m0)return m0;
+  let m=m0;if(!m.userData||!m.userData.pc){m=m.clone();m.userData=Object.assign({},m.userData,{pc:1})}
+  const hx=PAINT[k];
+  if(hx){const c=new THREE.Color(hx);c.convertSRGBToLinear();m.color.copy(c);
+   if(k==='b'){m.emissive.copy(c).multiplyScalar(.22)}else{m.emissive.setRGB(0,0,0);m.metalness=.65;m.roughness=.25}}
+  else{const d=u.dc,e=u.de,mr=u.dm;m.color.setRGB(d[0],d[1],d[2]);m.emissive.setRGB(e[0],e[1],e[2]);m.metalness=mr[0];m.roughness=mr[1]}
+  return m});
+ o.material=arr?out:out[0]})}
 const PDEF={b:[.92,.14,.6],v:[.74,.74,.76]};
 /* KEMIRINGAN MOTOR SAAT BELOK: LEAN_MIN = miring dasar di 0 km/h, LEAN_RATE = tambahan per kecepatan, LEAN_MAX = batas. Naikkan LEAN_MIN/LEAN_RATE kalau masih kurang miring. */
 window.LEAN_MIN=.2;window.LEAN_RATE=1/12;window.LEAN_MAX=.5;
@@ -2895,10 +2902,12 @@ function isBodyMat(mt,nm){
  try{const c=mt.color;if(c){const o={};c.clone().convertLinearToSRGB().getHSL(o);console.log('[VARIO mat]',nm,'#'+c.clone().convertLinearToSRGB().getHexString(),'h'+o.h.toFixed(2),'s'+o.s.toFixed(2),'l'+o.l.toFixed(2))}}catch(e){}
  if(/bodiputi/i.test(nm))return true;
  if(window.BODY_EXTRA&&window.BODY_EXTRA.test(nm))return true;
- if(!mt||!mt.color||mt.transparent||(mt.opacity!==undefined&&mt.opacity<1))return false;
+ if(!mt||!mt.color)return false;
  if(/^(mika|kaca|glass|lens|lampu|ban|ruji|velg|disk|karet|rubber|krom|chrome)/i.test(nm))return false;
+ if(/spee?do|spido|spedo|dashboard|dasbor/i.test(nm))return true; // cover speedometer
  try{const o={};mt.color.clone().convertLinearToSRGB().getHSL(o);
-  if((o.h>=.8||o.h<=.04)&&o.s>=.18&&o.l>=.6)return true}catch(e){} // pink muda
+  // pink / lavender / putih keunguan (hue 0.70-1.0 atau 0-0.04), boleh pucat & boleh transparan
+  if((o.h>=.7||o.h<=.04)&&o.s>=.08&&o.l>=.5)return true}catch(e){}
  return false}
 function hsv2rgb(h,s,v){h=(((h%360)+360)%360)/60;const i=Math.floor(h),f=h-i,p=v*(1-s),q=v*(1-s*f),t=v*(1-s*(1-f));return [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6].map(x=>Math.round(x*255))}
 function rgb2hsv(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360}return [h,mx?d/mx:0,mx]}
@@ -3180,7 +3189,10 @@ async function varioFromBuf(buf){
   if(w>=0)me.position.sub(AX[w]);
   if(CPI.has(i))me.userData.cp=1;
   (Array.isArray(me.material)?me.material:[me.material]).forEach(tune);
-  {const mt=me.material;if(mt&&!Array.isArray(mt)&&mt.color&&mt.emissive){const nm=mt.name||'',key=(rimOf(me)||(w>=0&&/^ruji/i.test(nm)))?'v':(isBodyMat(mt,nm)?'b':'');if(key){me.userData.pk=key;me.userData.dc=mt.color.toArray();me.userData.de=mt.emissive.toArray();me.userData.dm=[mt.metalness,mt.roughness]}}} // REPAINT: tandai BODY & VELG
+  {const isArr=Array.isArray(me.material),ms=isArr?me.material:[me.material],rim=rimOf(me),pm=[];let any=false;
+   ms.forEach((mt,j)=>{pm[j]=null;if(!mt||!mt.color||!mt.emissive)return;const nm=mt.name||'',key=(rim||(w>=0&&/^ruji/i.test(nm)))?'v':(isBodyMat(mt,nm)?'b':'');
+    if(key){const u={k:key,dc:mt.color.toArray(),de:mt.emissive.toArray(),dm:[mt.metalness,mt.roughness]};pm[j]=u;any=true;if(!isArr){me.userData.pk=key;me.userData.dc=u.dc;me.userData.de=u.de;me.userData.dm=u.dm}}});
+   if(isArr&&any)me.userData.pm=pm} // REPAINT: tandai BODY & VELG (mendukung multi-material)
   if(me.parent)me.parent.remove(me);
   (w>=0?W[w]:g).add(me)});
  let tri=0;meshes.forEach(m=>{if(m.geometry&&m.geometry.index)tri+=m.geometry.index.count/3});VARIO_TRI=Math.round(tri);
