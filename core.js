@@ -1156,7 +1156,7 @@ function shopShowModel(){
  if(SH.sel==='vario150'){const m=shopDefModel();if(m){SH.piv.add(m);ld.style.display='none'}else{ld.textContent='MEMUAT MODEL…';ld.style.display='block';setTimeout(()=>{if(SH.on&&SH.cat==='kendaraan'&&SH.sel==='vario150')shopShowModel()},700)}return}
  if(SH.model){SH.piv.add(SH.model);ld.style.display='none';return}
  ld.textContent='MEMUAT MODEL…';ld.style.display='block';
- shopLoadModel().then(()=>{if(SH.on&&SH.cat==='kendaraan'&&SH.sel==='vario_mod')shopShowModel()}).catch(()=>{ld.textContent='GAGAL MEMUAT MODEL (pastikan vario_model.js satu folder dengan game)';ld.style.display='block'})}
+ shopLoadModel().then(()=>{if(SH.on&&SH.cat==='kendaraan'&&SH.sel==='vario_mod')shopShowModel()}).catch(e=>{console.error('Toko GLB',e);ld.textContent='GAGAL MEMUAT MODEL: '+((e&&e.message)||e);ld.style.display='block'})}
 function shopRender(){
  const items=$('shopItems'),info=$('shopInfo'),tabs=$('shopTabs'),clk=()=>{try{uiSound('click')}catch(e){}};
  shopMoneyUI();
