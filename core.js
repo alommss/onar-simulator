@@ -311,10 +311,14 @@ function ultBeam(){const h=16,g=new THREE.ConeGeometry(3.6,h,24,1,true);g.transl
  const m=new THREE.MeshBasicMaterial({vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide});
  const s=new THREE.Mesh(g,m);s.position.set(0,.95,-.55);s.frustumCulled=false;s.visible=false;s.renderOrder=3;s.userData.noCast=1;return s}
 function ultSky(){
- const m=new THREE.ShaderMaterial({side:THREE.BackSide,depthTest:false,depthWrite:false,fog:false,toneMapped:false,
+ const m=new THREE.ShaderMaterial({side:THREE.BackSide,depthTest:false,depthWrite:false,fog:false,toneMapped:false,uniforms:{tS:{value:null},uS:{value:0}},
   vertexShader:'varying vec3 vD;void main(){vD=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:'varying vec3 vD;void main(){float y=normalize(vD).y;vec3 zen=vec3(.010,.018,.050);vec3 mid=vec3(.040,.055,.125);vec3 hor=vec3(.20,.115,.105);vec3 gnd=vec3(.022,.024,.040);vec3 c=y>0.?mix(mix(hor,mid,smoothstep(0.,.16,y)),zen,smoothstep(.10,.70,y)):mix(hor*.30,gnd,smoothstep(0.,.25,-y));c+=vec3(.16,.075,.04)*exp(-abs(y)*16.)*.5;gl_FragColor=vec4(c,1.);}'});
- const s=new THREE.Mesh(new THREE.SphereGeometry(3000,32,16),m);s.frustumCulled=false;s.renderOrder=-1000;s.visible=false;return s}
+  fragmentShader:'uniform sampler2D tS;uniform float uS;varying vec3 vD;void main(){float y=normalize(vD).y;vec3 zen=vec3(.010,.018,.050);vec3 mid=vec3(.040,.055,.125);vec3 hor=vec3(.20,.115,.105);vec3 gnd=vec3(.022,.024,.040);vec3 c=y>0.?mix(mix(hor,mid,smoothstep(0.,.16,y)),zen,smoothstep(.10,.70,y)):mix(hor*.30,gnd,smoothstep(0.,.25,-y));c+=vec3(.16,.075,.04)*exp(-abs(y)*16.)*.5;if(uS>0.){vec3 d=normalize(vD);vec2 uv=vec2(atan(d.x,d.z)*.15915494+.5,asin(clamp(d.y,-1.,1.))*.31830989+.5);c+=texture2D(tS,uv*vec2(6.,3.)).rgb*uS*smoothstep(-.02,.10,d.y);}gl_FragColor=vec4(c,1.);}'});
+ const s=new THREE.Mesh(new THREE.SphereGeometry(3000,32,16),m);s.frustumCulled=false;s.renderOrder=-1000;s.visible=false;
+ /* BINTANG dari gambar models/langit.png (ditiling 6x3 di bola langit). Gagal dimuat -> tetap pakai bintang titik lama. uS = terang bintang. */
+ try{new THREE.TextureLoader().load('models/langit.png',t=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter;t.generateMipmaps=false;t.needsUpdate=true;
+  m.uniforms.tS.value=t;m.uniforms.uS.value=1.3;if(HQ.stars)HQ.stars.material.visible=false},undefined,e=>console.error('langit.png',e))}catch(e){console.error('langit',e)}
+ return s}
 function ultInit(){
  const U=ULT,vs='varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}';
  const mk=(fs,u)=>new THREE.ShaderMaterial({uniforms:u,vertexShader:vs,fragmentShader:fs,depthTest:false,depthWrite:false,toneMapped:false});
@@ -373,13 +377,18 @@ function draw(dt){
    cam.position.set(px,py,pz);cam.rotation.set(rx,ry,rz);cam.updateMatrixWorld(true)}
   else ultRender()}
  fxLines(dt)}
+/* ASAP KNALPOT/BURNOUT dari gambar models/asap_knalpot.png: semua sprite asap (SM) dipasangi tekstur ini begitu daftar SM siap. Gagal dimuat -> asap lama. */
+let smTexDone=false,smTexTry=0;
+function smSwapTex(){if(smTexDone||smTexTry++>1800)return;let sm;try{sm=SM}catch(e){return}if(!sm||!sm.length)return;smTexDone=true;
+ try{new THREE.TextureLoader().load('models/asap_knalpot.png',t=>{sm.forEach(p=>{if(!p||!p.s||!p.s.material)return;p.s.material.map=t;p.s.material.rotation=Math.random()*6.283;p.s.material.needsUpdate=true})},undefined,e=>console.error('asap_knalpot.png',e))}catch(e){console.error('asap',e)}}
 function smoke(dt){
+ if(!smTexDone)smSwapTex();
  const ok=P&&P.th>.2&&((st==='race'&&P.fin==null&&!P.dq)||(st==='ow'&&!ow.foot));
  if(ok){smAcc+=dt*(5+8*P.th);
   while(smAcc>=1){smAcc-=1;const p=SM.find(q=>q.life<=0);if(!p)break;
    P.obj.updateMatrixWorld(true);smV.set(.17,.3,.98);P.obj.localToWorld(smV);
    const h=st==='ow'?ow.h:0,bx_=Math.sin(h),bz_=Math.cos(h);
-   p.s.material.color.setHex(0xaeb0ba);p.s.position.copy(smV);p.max=p.life=.7+Math.random()*.4;p.sz=.14+Math.random()*.06;p.o=.12+.1*P.th;
+   p.s.material.color.setHex(0xaeb0ba);p.s.material.rotation=Math.random()*6.283;p.s.position.copy(smV);p.max=p.life=.7+Math.random()*.4;p.sz=.14+Math.random()*.06;p.o=.12+.1*P.th;
    p.vx=bx_*.9+(Math.random()-.5)*.25;p.vz=bz_*.9+(Math.random()-.5)*.25;p.vy=.3+Math.random()*.25;p.s.visible=true}}
  else smAcc=Math.min(smAcc,1);
  for(const p of SM){if(p.life<=0)continue;p.life-=dt;
@@ -557,7 +566,7 @@ function droneOn(){
  inp.l=inp.r=inp.brk=inp.bn=inp.rev=inp.run=0;setGas(false);setWH(0);setSUP(0);
  drag=null;CB.t=1;DR.on=true;
  $('w').classList.add('drone');joyReset();
- const b=$('drn');if(b)b.textContent='✕ KELUAR';
+ const b=$('drn');if(b){window.DRN_HTML=window.DRN_HTML||b.innerHTML;b.textContent='✕ KELUAR'}
  camToast('DRONE · joystick = maju/mundur/geser · geser layar = arah · kanan = naik/turun')}
 function droneOff(){
  if(!DR.on)return;
@@ -566,7 +575,7 @@ function droneOff(){
  ['dfw','dbk'].forEach(i=>{const e=$(i);if(e)e.classList.remove('on')});
  CB.p.copy(cam.position);CB.q.copy(cam.quaternion);
  camSet(DR.prev,true);CB.t=0; // kembali mulus ke kamera biasa
- const b=$('drn');if(b)b.textContent='🚁 DRONE'}
+ const b=$('drn');if(b)b.innerHTML=window.DRN_HTML||'🚁 DRONE'}
 function droneCam(dt){
  const cp=Math.cos(DR.pitch),sp=Math.sin(DR.pitch),sy=Math.sin(DR.yaw),cy=Math.cos(DR.yaw),k=DR.k;
  const jx=Math.abs(joy.x)>.1?joy.x:0,jy=Math.abs(joy.y)>.1?-joy.y:0;
