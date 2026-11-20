@@ -118,8 +118,8 @@ curbBox(3.8,.28,148,0,.14,-75);box(3.1,.32,147,mstd('#2a2b31',.9,0x0a0a0c),0,.17
  const c1=new THREE.Mesh(new THREE.CylinderGeometry(1,1,.3,40,1),[cs,gr,mbas({color:0x111111})]);c1.scale.set(11.6,1,6.4);add(c1,0,.15,17,GP);
  const c2=new THREE.Mesh(new THREE.CylinderGeometry(1,1,.34,40),[gr,gr,gr]);c2.scale.set(10.6,1,5.5);add(c2,0,.18,17,GP);
  c2.material=new THREE.MeshStandardMaterial({map:grassT,emissiveMap:grassT,emissive:0xffffff,emissiveIntensity:.3});}
-// kisi drainase
-{const dm=mbas({color:0x16161a});[[-15,21],[-4,26],[5,24],[16,22],[-24,15],[26,14]].forEach(([x,z])=>{flat(4.2,1.3,dm,x,.11,z);flat(3.8,.12,mbas({color:0x2a2a30}),x,.115,z)})}
+// kisi drainase (DIMATIKAN: daftar kosong. Isi lagi [[-15,21],[-4,26],[5,24],[16,22],[-24,15],[26,14]] untuk mengaktifkan)
+{const dm=mbas({color:0x16161a});[].forEach(([x,z])=>{flat(4.2,1.3,dm,x,.11,z);flat(3.8,.12,mbas({color:0x2a2a30}),x,.115,z)})}
 // ---------- gerbang ----------
 const conc=mstd('#8c8981',.9,0x1a1814),dk=mstd('#2a2d33',.7,0x08090c);
 [-19,19].forEach(x=>{box(1.7,7.4,1.7,conc,x,3.7,-1);box(3.6,.5,4,conc,x,7.3,-1)});
