@@ -984,7 +984,7 @@ function dashAttach(nb,b,kind){try{
   const pw=tw*(G.s||1),ph=th*(G.s||1);
   const p0=wc.clone().addScaledVector(ux,du+(G.u||0)).addScaledVector(uy,dv+(G.v||0));
   let nn=n.clone(),pp=p0.clone(),lap=0;
-  try{const rc=new THREE.Raycaster();rc.set(p0.clone().addScaledVector(n,.35),n.clone().negate());rc.far=.7;
+  try{const rc=new THREE.Raycaster();rc.layers.enableAll();rc.set(p0.clone().addScaledVector(n,.35),n.clone().negate());rc.far=.7;
    const ds=[];rc.intersectObject(nb,true).filter(q=>q.object.isMesh&&q.face).forEach(q=>{if(!ds.length||q.distance-ds[ds.length-1].distance>.01)ds.push(q)});lap=ds.length;
    const ht=ds[Math.min(G.h||0,ds.length-1)];
    if(ht){const hn=ht.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(ht.object.matrixWorld)).normalize();if(hn.dot(n)<0)hn.negate();if(hn.dot(n)>.6)nn.copy(hn);pp.copy(ht.point)}}catch(e){}
@@ -999,7 +999,7 @@ function dashAttach(nb,b,kind){try{
   const T=new THREE.Matrix4().compose(pos,q,new V(pw,ph,1)),L=pri.clone().multiply(T);
   L.decompose(me.position,me.quaternion,me.scale);par.add(me);
   lg.push(id+':'+lap+' lapisan');
-  return{id,mesh:me,cv,x:cv.getContext('2d'),tex}};
+  return{id,mesh:me,cv,x:cv.getContext('2d'),tex,lap}};
  const wb=WW*.82,hb=wb/8,hn=WH*.48;
  const parts=[build('rpm',wb,hb,1024,128,0,WH*.5-WH*.07-wb*DASH_IMG_AR/2),build('num',hn*2,hn,512,256,0,-WH*.16)];
  const d={parts,kind,nb,s:-1,n:-1,k:-1};b.dash=d;DASH_SET.add(d);dashSet(b,0,1250);
@@ -1014,7 +1014,7 @@ function dashTunerInit(){try{if(window.DASH_TUNER===false||window.__dashTuner)re
  const rd=document.createElement('div');rd.style.cssText='margin-bottom:5px;word-break:break-all';
  const gr=document.createElement('div');gr.style.cssText='display:grid;grid-template-columns:repeat(6,40px);gap:3px';
  const KY=()=>P&&P.dash?P.dash.kind+'.'+TG:null;
- const show=()=>{const k=KY(),F=k&&DASH_FIX[k]||{};const f=v=>+(v||0).toFixed(3);rd.textContent=k?('TARGET: '+(TG==='rpm'?'RPM':'ANGKA')+'\nDASH_FIX["'+k+'"]='+JSON.stringify({u:f(F.u),v:f(F.v),n:f(F.n),s:+(F.s||1).toFixed(2),rx:f(F.rx),ry:f(F.ry),rz:f(F.rz),h:F.h||0})):'motor belum siap';rd.style.whiteSpace='pre-wrap';tb.textContent=TG==='rpm'?'RPM':'ANGKA'};
+ const show=()=>{const k=KY(),F=k&&DASH_FIX[k]||{};const f=v=>+(v||0).toFixed(3);const pt=P&&P.dash&&P.dash.parts.find(q=>q.id===TG);rd.textContent=k?('TARGET: '+(TG==='rpm'?'RPM':'ANGKA')+' | lapisan: '+(pt?pt.lap:'?')+'\nDASH_FIX["'+k+'"]='+JSON.stringify({u:f(F.u),v:f(F.v),n:f(F.n),s:+(F.s||1).toFixed(2),rx:f(F.rx),ry:f(F.ry),rz:f(F.rz),h:F.h||0})):'motor belum siap';rd.style.whiteSpace='pre-wrap';tb.textContent=TG==='rpm'?'RPM':'ANGKA'};
  const ch=f=>()=>{const k=KY();if(!k)return;const F=DASH_FIX[k]=DASH_FIX[k]||{};f(F);try{localStorage.setItem('dashfix',JSON.stringify(DASH_FIX))}catch(e){}dashRebuild();show()};
  const add=(l,fn)=>{const e=document.createElement('button');e.textContent=l;e.style.cssText='height:30px;font:700 12px sans-serif;border:0;border-radius:6px;background:#2d6cdf;color:#fff;touch-action:manipulation;padding:0';let t1=0,t2=0;const stop=()=>{clearTimeout(t1);clearInterval(t2)};
   e.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();fn();t1=setTimeout(()=>{t2=setInterval(fn,80)},320)});['pointerup','pointerleave','pointercancel'].forEach(t=>e.addEventListener(t,stop));gr.appendChild(e);return e};
