@@ -689,9 +689,11 @@ function ellPush(o,cx,cz,a,b,r,offs,fx,fz){let hit=0;const A=a+r,B=b+r;
   o.x+=tx-px;o.z+=tz-pz;hit=Math.max(hit,Math.abs(nx*fx+nz*fz))}
  return hit}
 function pillarWall(){
- if(ow.foot){for(const S of ISLS)rectPush(wk,S.x-PIL.sx/2,S.x+PIL.sx/2,S.z-PIL.sz/2,S.z+PIL.sz/2,.35,[0],0,0);return}
+ const FR=window.FENCE_RECTS||[];
+ if(ow.foot){for(const S of ISLS)rectPush(wk,S.x-PIL.sx/2,S.x+PIL.sx/2,S.z-PIL.sz/2,S.z+PIL.sz/2,.35,[0],0,0);for(const q of FR)rectPush(wk,q[0],q[1],q[2],q[3],.35,[0],0,0);return}
  const fx=-Math.sin(ow.h),fz=-Math.cos(ow.h),O=[.85,0,-.85];let hit=0;
  for(const S of ISLS){const h1=ellPush(ow,S.x,S.z,ISL.w/2,ISL.l/2,.42,O,fx,fz),h2=rectPush(ow,S.x-PIL.sx/2,S.x+PIL.sx/2,S.z-PIL.sz/2,S.z+PIL.sz/2,.42,O,fx,fz);hit=Math.max(hit,h1,h2)}
+ for(const q of FR)hit=Math.max(hit,rectPush(ow,q[0],q[1],q[2],q[3],.42,O,fx,fz));
  if(hit>.2)P.v*=Math.max(0,1-(hit-.2)*.6)}
 function nswH(x,z){if(x<NSW.x0||x>NSW.x1)return null;for(const q of NSW.segs)if(z<=q[0]&&z>=q[1])return NSW.y+.1;return null}
 function gpcH0(x,z){const spr=sprH(x,z);if(spr!=null)return spr;const nsw=nswH(x,z);if(nsw!=null)return nsw;const sw=trotH(x,z);if(sw!=null)return sw;const rh=roadH(x,z);if(rh!=null)return rh;const lk=lkrH(x,z);if(lk!=null)return lk;const lz=x+20,lx=-z,a=Math.abs(lx);if(lz>28.4&&lz<=35&&a<=60){if(lz<30.4)return .052+.168*(lz-28.4)/2;return lz<=34.9?.22:0}if(lz>35||lz<-157||a>90)return 0;
