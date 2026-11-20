@@ -87,7 +87,7 @@ let GCH=null,GCHp=null;
    Layar 3 m x 2,2 m, tinggi total ~2,4 m. Dipasang di koordinat dunia X -23.7, Z -43.9.
    Ubah LEDW.x / LEDW.z / LEDW.rdeg / LEDW.s untuk geser, putar (derajat), atau perbesar. rdeg 90 = layar menghadap arah +X (ke arah pemain berdiri di X -19.8); 270 = menghadap -X. */
 window.LEDW={x:-23.7,z:-43.9,rdeg:90,s:5};
-chB64ToBuf(LED_GLB_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+chB64ToBuf(typeof LED_GLB_B64!=='undefined'?LED_GLB_B64:null,'led_video_wall.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
  const m=gl.scene;
  /* KEBAL CAHAYA (hanya LAYAR): material 'screen' diganti MeshBasicMaterial -> tidak terpengaruh lampu, bayangan, refleksi/specular, clearcoat.
    Rangka/kabinet/baut tetap material asli. Kecerahan layar tetap = LEDW.bright. */
@@ -111,7 +111,7 @@ chB64ToBuf(LED_GLB_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().pa
    Tinggi ~6,1 m, lebar ~3,5 m, 1 tiang. Dipasang tepat di depan titik X -23.9, Z -32.7 (H 271) sejauh 15 m, layar menghadap pemain.
    Ubah BBD.x / BBD.z untuk geser, BBD.rdeg untuk putar (derajat; 270 = layar menghadap -X, 90 = menghadap +X), BBD.s untuk skala. BBD.on=false untuk menyembunyikan. */
 window.BBD={on:true,x:-26.5,z:-34.0,rdeg:0,s:1}; /* di samping LED wall (ujung sisi +z), layar menghadap +Z = ke arah jalan aspal */
-if(BBD.on)chB64ToBuf(BBD_GLB_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+if(BBD.on)chB64ToBuf(typeof BBD_GLB_B64!=='undefined'?BBD_GLB_B64:null,'billboard_onar_simulator.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
  const m=gl.scene;
  m.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=true;[].concat(o.material).forEach(q=>{if(!q)return;
   if(q.name==='screen'){q.emissive=new THREE.Color(0xffffff);q.emissiveIntensity=.95}
@@ -127,9 +127,9 @@ if(BBD.on)chB64ToBuf(BBD_GLB_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFL
 /* ===== HALTE RAWASARI (model GLB halte_rawasari-edited.glb, byte asli tidak diubah) =====
    Panjang ~22,8 m (sumbu panjang searah jalan), dalam ~3 m, tinggi ~5,7 m. Titik tengah di X 16.3, Z -90.4 (trotoar kiri jalan utama).
    Ubah HRW.x / HRW.z / HRW.rdeg / HRW.s untuk geser, putar (derajat), atau skala. rdeg 90 = sisi depan (fasad berlian) menghadap +X (ke arah jalan); 270 = sebaliknya. */
-const HRW_GLB_B64=__BIG[18];
+const HRW_GLB_B64=(typeof __BIG!=='undefined'?__BIG:[])[18];
 window.HRW={x:16.3,z:-90.4,rdeg:90,s:1};
-chB64ToBuf(HRW_GLB_B64).then(buf=>{
+chB64ToBuf(HRW_GLB_B64,'halte_rawasari.glb').then(buf=>{
  // kekuatan emissive per material dibaca dari JSON GLB (three r128 belum mengenal KHR_materials_emissive_strength)
  const st={};try{const dv=new DataView(buf),n=dv.getUint32(12,true),js=JSON.parse(new TextDecoder().decode(new Uint8Array(buf,20,n)));
   (js.materials||[]).forEach(m=>{const e=m.extensions&&m.extensions.KHR_materials_emissive_strength;if(e&&m.name)st[m.name]=e.emissiveStrength})}catch(e){}
@@ -156,7 +156,10 @@ const VARIO_FIX4_GZ_B64=__BIG[19];
 (async()=>{try{
  if(!window.VARIO_HQ_ON)return;
  await Promise.resolve(window.__lqP).catch(()=>{});
- const ab=await chB64ToBuf(VARIO_FIX4_GZ_B64);
+ let stream;
+ try{stream=(await fetch('data:application/gzip;base64,'+VARIO_FIX4_GZ_B64)).body}
+ catch(e){const bin=atob(VARIO_FIX4_GZ_B64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);stream=new Blob([u]).stream()}
+ const ab=await new Response(stream.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
  await varioLoad(ab,false);
 }catch(e){console.error('Vario fix4',e);try{varioStatus('Gagal: '+(e&&e.message||e))}catch(_){}}})();
 hqInit();
