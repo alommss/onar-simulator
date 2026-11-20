@@ -875,7 +875,7 @@ tapHome('hLC',()=>showLicense());
    ABK.zones = daftar area [x0,x1,z0,z1] (meter, koordinat dunia). Mau tambah jalan lain: tambah satu baris di zones.
    ABK.y = tinggi permukaan balok (0.02 = sedikit di atas jalan dasar). ABK.clean = hapus lapisan aspal/tanah lama yang rata & seluruhnya ada di dalam area.
    ABK.on=false untuk mematikan (kembali ke aspal lama). */
-const ABK={on:true,file:'models/aspal_blok-kasar2.glb',zones:[[18.9,45.4,-530,-68.6]],y:.02,clean:true,rot:true};
+const ABK={on:false,file:'models/aspal_blok-kasar2.glb',zones:[[18.9,45.4,-530,-68.6]],y:.02,clean:true,rot:true};
 (function(){if(!ABK.on)return;try{
  fetch(ABK.file).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status+' '+ABK.file);return r.arrayBuffer()})
  .then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no)))
