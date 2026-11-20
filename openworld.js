@@ -188,19 +188,22 @@ face(28,4.65,mbas({map:signT,transparent:true,depthWrite:false,fog:false}),0,9.7
 // ---------- menara apartemen (jendela menyala) ----------
 /* ===== GEDUNG APARTEMEN DARI FILE GLB (models/gedung_apartemen.glb) =====
    on:false -> balik ke gedung kotak lama. uniform:true -> proporsi asli model dijaga (tinggi bisa beda dari slot).
-   rot: putar model (kelipatan Math.PI/2). glow: terang jendela/tekstur di malam hari. */
-const APT={on:true,file:'models/gedung_apartemen.glb',uniform:false,rot:0,glow:.45,P:null,
- recolor:true,n:0,hues:[.60,.36,.08,.76,.50,.14,.95,.68]}; // recolor:true -> garis merah tiap gedung beda warna. hues = urutan warna (0-1: .95 merah asli, .60 biru, .36 hijau, .08 oranye, .76 ungu, .50 tosca, .14 kuning, .68 indigo)
-const APT_GLSL=`uniform float uHue;
-vec3 aptRgb2hsv(vec3 c){vec4 K=vec4(0.,-1./3.,2./3.,-1.);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);float e=1e-10;return vec3(abs(q.z+(q.w-q.y)/(6.*d+e)),d/(q.x+e),q.x);}
-vec3 aptHsv2rgb(vec3 c){vec4 K=vec4(1.,2./3.,1./3.,3.);vec3 p=abs(fract(c.xxx+K.xyz)*6.-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.,1.),c.y);}
-vec3 aptRecolor(vec3 c){vec3 h=aptRgb2hsv(c);float red=max(1.-smoothstep(.03,.08,h.x),smoothstep(.82,.88,h.x));float m=red*smoothstep(.3,.5,h.y);h.x=uHue;return mix(c,aptHsv2rgb(h),m);}
-`;
+   rot: putar model. glow: terang tekstur malam hari. recolor: garis merah tiap gedung beda warna (tekstur dibuat ulang lewat canvas, tanpa shader).
+   hues (0-1): .95 merah asli, .60 biru, .36 hijau, .08 oranye, .76 ungu, .50 tosca, .14 kuning, .68 indigo. texW = lebar tekstur hasil warna (kecil = hemat memori). */
+const APT={on:true,file:'models/gedung_apartemen.glb',uniform:false,rot:0,glow:.45,P:null,recolor:true,n:0,texW:1024,
+ hues:[.60,.36,.08,.76,.50,.14,.95,.68],tex:{}};
+function aptBake(src,hue){ // ganti HANYA piksel merah jenuh -> hue baru; putih/abu-abu tidak berubah
+ const k=hue.toFixed(2);if(APT.tex[k])return APT.tex[k];
+ const im=src.image,W=Math.min(APT.texW,im.width||APT.texW),H=Math.round(W*(im.height||1)/(im.width||1)),cv_=document.createElement('canvas');cv_.width=W;cv_.height=H;
+ const cx=cv_.getContext('2d');cx.drawImage(im,0,0,W,H);const id=cx.getImageData(0,0,W,H),a=id.data;
+ for(let i=0;i<a.length;i+=4){const r=a[i]/255,g=a[i+1]/255,b=a[i+2]/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;if(mx<.2||d/mx<.4)continue;
+  let h=mx===r?((g-b)/d+6)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h/=6;if(!(h>.86||h<.04))continue;
+  const s=d/mx,v=mx,hh=hue*6,f=hh-Math.floor(hh),p=v*(1-s),q=v*(1-s*f),t=v*(1-s*(1-f));
+  const c=[[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][Math.floor(hh)%6];a[i]=c[0]*255;a[i+1]=c[1]*255;a[i+2]=c[2]*255}
+ cx.putImageData(id,0,0);
+ const tx=new THREE.CanvasTexture(cv_);tx.flipY=src.flipY;tx.encoding=src.encoding;tx.wrapS=src.wrapS;tx.wrapT=src.wrapT;tx.anisotropy=src.anisotropy;tx.needsUpdate=true;return APT.tex[k]=tx}
 function aptTint(root,hue){root.traverse(o=>{if(!o.isMesh)return;
- const f=m=>{const c=m.clone();c.onBeforeCompile=sh=>{sh.uniforms.uHue={value:hue};
-  sh.fragmentShader=APT_GLSL+sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n diffuseColor.rgb=aptRecolor(diffuseColor.rgb);')
-   .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance=aptRecolor(totalEmissiveRadiance);')};
-  c.customProgramCacheKey=()=>'aptTint';c.needsUpdate=true;return c};
+ const f=m=>{if(!m.map)return m;const c=m.clone(),t=aptBake(m.map,hue);c.map=t;c.emissiveMap=t;c.needsUpdate=true;return c};
  o.material=Array.isArray(o.material)?o.material.map(f):f(o.material)})}
 function aptLoad(){return APT.P||(APT.P=fetch(APT.file).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status+' '+APT.file);return r.arrayBuffer()})
  .then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
@@ -213,7 +216,7 @@ function aptPlace(tw,w,h,d,x,z){return aptLoad().then(gl=>{
   if(!tw.parent)return true; // slot ini sudah dihapus (kena jalan LKR) -> jangan dipasang
   const sz=gl.bb.getSize(new THREE.Vector3()),c=gl.bb.getCenter(new THREE.Vector3()),m=gl.scene.clone(true),g=new THREE.Group();
   m.position.set(-c.x,-gl.bb.min.y,-c.z);g.add(m);
-  if(APT.recolor)aptTint(m,APT.hues[APT.n++%APT.hues.length]);
+  if(APT.recolor){try{const hu=APT.hues[APT.n++%APT.hues.length];if(hu!==.95)aptTint(m,hu)}catch(e){console.error('GEDUNG warna',e)}}
   const sx=w/sz.x,sy=h/sz.y,sd=d/sz.z;
   if(APT.uniform){const s=Math.min(sx,sy,sd);g.scale.set(s,s,s)}else g.scale.set(sx,sy,sd);
   g.rotation.y=APT.rot;g.position.set(x,0,z);GP.add(g);return true
