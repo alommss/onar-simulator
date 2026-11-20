@@ -64,7 +64,7 @@ flat(120,1.3,mbas({color:0x77746d}),0,.075,34.2);
  const poM=mstd('#f2f2ee',.5,0x30302c),lhM=mbas({color:0xfff0c4});
  /* Model trotoar: "TROTOAT 1_2X2 M T 10CM" oleh eventdesignws (CC BY 4.0) - https://sketchfab.com/3d-models/trotoat-1-2x2-m-t-10cm-0a250a56696e4e158231d7344a6d2761
    File GLB asli, byte tidak diubah/dikompres. sha256=05c21d8a29702e6d7ec567ba6b5ff7e9eca9b0beda135659732e2ccd4cec1250 . Modul 2 m x 1,2 m, tebal 10 cm, dipasang berulang (instancing) sepanjang trotoar. */
- chB64ToBuf(TRO_GLB_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+ chB64ToBuf(typeof TRO_GLB_B64!=='undefined'?TRO_GLB_B64:null,'trotoar.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
   gl.scene.updateMatrixWorld(true);const ms=[];gl.scene.traverse(o=>{if(o.isMesh)ms.push(o)});
   const stone=ms.find(o=>/stone/i.test((o.material&&o.material.name)||''))||ms[0],edge=ms.find(o=>o!==stone);
   const prep=o=>{const g=o.geometry.clone();g.applyMatrix4(o.matrixWorld);const m=o.material;if(m.map){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.emissiveIntensity=.4}m.side=THREE.DoubleSide;m.needsUpdate=true;return [g,m]};
@@ -87,8 +87,8 @@ flat(120,1.3,mbas({color:0x77746d}),0,.075,34.2);
   window.GP_POLES.push([-20+34.2,-x])})}
 /* Model tenda: "TENDA+3X3 FACIA POLOS" oleh eventdesignws (CC BY 4.0) - https://sketchfab.com/3d-models/tenda3x3-facia-polos-f10d4d3444aa43199469951e16f7608b
    File GLB asli, byte tidak diubah/dikompres. sha256=06de25a443b2ea169cdc88f40124154c0c951972f54235a287cf1251e531749e . Dimuat sekali, lalu dipasang di beberapa tempat. */
-const TENT_GLB_B64=__BIG[4];
-window.TENT_P=chB64ToBuf(TENT_GLB_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+const TENT_GLB_B64=(typeof __BIG!=='undefined'?__BIG:[])[4];
+window.TENT_P=chB64ToBuf(TENT_GLB_B64,'tenda_3x3.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
  gl.scene.traverse(o=>{if(!o.isMesh)return;(Array.isArray(o.material)?o.material:[o.material]).forEach(mt=>{
   if(mt.userData&&mt.userData.tl)return;mt.userData=mt.userData||{};mt.userData.tl=1;
   if(mt.map){mt.emissiveMap=mt.map;mt.emissive=new THREE.Color(0xffffff);mt.emissiveIntensity=.3}
@@ -790,7 +790,7 @@ try{(function(){
    Tiap segmen dipotong pas di batas ubin (tanpa ubin terpotong), jadi ujung di apron SPBU rapi. Tinggi atas 12 cm (lihat nswH di gpcH). */
 try{(function(){
  const L=NSW.x0,R=NSW.x1,EW=.118,NR=3,w=(R-EW-L)/NR,sz=w/1.2;
- chB64ToBuf(window.TRO_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+ chB64ToBuf(window.TRO_B64,'trotoar.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
   gl.scene.updateMatrixWorld(true);const ms=[];gl.scene.traverse(o=>{if(o.isMesh)ms.push(o)});
   const stone=ms.find(o=>/stone/i.test((o.material&&o.material.name)||''))||ms[0],edge=ms.find(o=>o!==stone);
   const prep=o=>{const g=o.geometry.clone();g.applyMatrix4(o.matrixWorld);const m=o.material;if(m.map){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.emissiveIntensity=.4}m.side=THREE.DoubleSide;m.polygonOffset=true;m.polygonOffsetFactor=-2;m.polygonOffsetUnits=-8;m.needsUpdate=true;return [g,m]};
@@ -810,8 +810,8 @@ try{(function(){
 const BRK_SHIFT=5; /* geser barrier ke KIRI (arah -X) sekian meter. Naikkan untuk lebih kiri lagi, 0 = posisi lama */
 const BRK={x:45.4-BRK_SHIFT,x0:45.4,z0:-93.1,z1:-457.9,hw:.4};window.BRK=BRK;
 try{(function(){
- const BRK_B64=__BIG[8];
- chB64ToBuf(BRK_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+ const BRK_B64=(typeof __BIG!=='undefined'?__BIG:[])[8];
+ chB64ToBuf(BRK_B64,'barrier.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
   gl.scene.updateMatrixWorld(true);let me=null;gl.scene.traverse(o=>{if(o.isMesh&&!me)me=o});if(!me)return;
   const g=me.geometry.clone();g.applyMatrix4(me.matrixWorld);g.computeBoundingBox();
   let b=g.boundingBox,c=b.getCenter(new THREE.Vector3());g.translate(-c.x,-b.min.y,-c.z);g.computeBoundingBox();b=g.boundingBox;
@@ -832,8 +832,8 @@ try{(function(){
 /* HLT.gap = jarak (meter) tepi halte terdekat dari sisi belakang barrier beton (BRK.x+BRK.hw) -> halte otomatis berada DI BELAKANG barrier. Naikkan untuk mundur lagi; isi null untuk pakai HLT.x manual. */
 const HLT={on:true,x:45.4,z:-91.8,y:0,s:1,rdeg:-90,gap:.6};window.HLT=HLT;
 try{if(HLT.on)(function(){
- const HLT_B64=__BIG[9];
- chB64ToBuf(HLT_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+ const HLT_B64=(typeof __BIG!=='undefined'?__BIG:[])[9];
+ chB64ToBuf(HLT_B64,'halte_rawasari.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
   const m=gl.scene;m.updateMatrixWorld(true);
   m.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=true;[].concat(o.material).forEach(q=>{if(!q)return;q.side=THREE.DoubleSide;if(q.map&&!q.transparent){q.emissiveMap=q.map;q.emissive=new THREE.Color(0xffffff);q.emissiveIntensity=.45}else if(q.color&&!q.transparent){q.emissive=q.color.clone().multiplyScalar(.3)}q.needsUpdate=true})});
   const bb=new THREE.Box3().setFromObject(m),c=bb.getCenter(new THREE.Vector3());
@@ -849,8 +849,8 @@ try{if(HLT.on)(function(){
    Ada tabrakan (polWall): kotak berputar hl x hw. Ubah POL.on=false untuk menyembunyikan. */
 const POL={on:true,x:21.7,z:-77.3,hdeg:5,hl:2.72,hw:1.16};POL.h=POL.hdeg*Math.PI/180+Math.PI; // model menghadap +z, jadi + PI supaya depan mobil searah H
 try{if(POL.on)(function(){
- const B64=__BIG[10];
- chB64ToBuf(B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+ const B64=(typeof __BIG!=='undefined'?__BIG:[])[10];
+ chB64ToBuf(B64,'mobil_polisi.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
   const car=gl.scene;car.updateMatrixWorld(true);
   car.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=true;
    [].concat(o.material).forEach((m,i,arr)=>{

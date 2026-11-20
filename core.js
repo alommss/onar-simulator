@@ -935,10 +935,12 @@ function chFigure(){const g=new THREE.Group(),jm=std('#7a1c1c',.8),dk=std('#1d1d
  part(new THREE.SphereGeometry(.18,16,16),hm,0,1.68,0,'helm');
  part(bx(.22,.07,.05),std('#0d0d12',.3),0,1.68,.16,'visor');
  return g}
-function chB64ToBuf(b64){
- return fetch('data:application/octet-stream;base64,'+b64).then(r=>r.arrayBuffer()).catch(()=>{const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer})}
+function chB64ToBuf(b64,file){ // b64 = data base64 (kalau ada); file = nama file di folder models/ sebagai cadangan (dipakai kalau data base64 kosong/tidak ada)
+ const viaFile=()=>file?fetch('models/'+file).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status+' models/'+file);return r.arrayBuffer()}):Promise.reject(new Error('data model kosong dan tidak ada file cadangan'));
+ if(typeof b64!=='string'||b64.length<100)return viaFile();
+ return fetch('data:application/octet-stream;base64,'+b64).then(r=>r.arrayBuffer()).catch(()=>{try{const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer}catch(e){return viaFile()}})}
 function chLoadModel(){if(CHV.loading||CHV.model)return;CHV.loading=true;
- chB64ToBuf(CHAR_GLB_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+ chB64ToBuf(typeof CHAR_GLB_B64!=='undefined'?CHAR_GLB_B64:null,'karakter.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
   const m=gl.scene;m.traverse(o=>{if(o.isSkinnedMesh)o.frustumCulled=false});
   CHV.model=m;CHV.fig.add(m);
   if(gl.animations&&gl.animations.length){CHV.mixer=new THREE.AnimationMixer(m);
@@ -1308,7 +1310,7 @@ function loadVario(){window.__lqP=loadVarioLQ();
  }
 function gDbg(t){console.log('GLB '+t)}
 function gLoad(){if(GCHp)return GCHp;
- GCHp=chB64ToBuf(CHAR_GLB_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+ GCHp=chB64ToBuf(typeof CHAR_GLB_B64!=='undefined'?CHAR_GLB_B64:null,'karakter.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
   gl.scene.traverse(o=>{if(o.isMesh||o.isSkinnedMesh)o.frustumCulled=false});GCH=gl;gDbg('termuat');
   try{if(custom&&P&&P.sk)skin(P,P.sk[0],P.sk[1])}catch(e){console.error('GCH skin',e)}
   try{gAttachWalker()}catch(e){console.error('GCH walker',e)}
