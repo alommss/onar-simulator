@@ -122,6 +122,12 @@ jobs:
           D=$(grep -m1 "certificate SHA-256 digest" sig.txt | awk '{print $NF}')
           echo "Digest tanda tangan: $D"
           if [ "$D" != "3d7e4e1bb8d33ea2f951fff232a6f68cb0a0621b1ba6bebdc31f14f428f17e60" ]; then echo "::error::Tanda tangan APK beda dari versi sebelumnya, tidak diterbitkan"; exit 1; fi
+      - name: Cek isi model
+        run: |
+          echo "=== Isi folder www/models ==="
+          ls -la www/models || echo "FOLDER www/models TIDAK ADA"
+          echo "=== Isi models di dalam APK ==="
+          unzip -l onar-simulator.apk | grep -i models || echo "TIDAK ADA models DI DALAM APK"
       - name: Terbitkan ke Releases
         env:
           GH_TOKEN: ${{ github.token }}
