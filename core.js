@@ -162,7 +162,7 @@ function hqFrame(c){
  const nl=((HQ.fc=(HQ.fc|0)+1)&1)?0:Math.min(HQ.lampS.length,200);for(let i=0;i<nl;i++){const l=HQ.lampS[i];l.s.scale.setScalar(l.b*(1+.045*Math.sin(T*2.1+l.ph)))}
  HQ.ema+=(dt-HQ.ema)*.05;
  if(HQ.ema>.036)HQ.slow+=dt;else HQ.slow=Math.max(0,HQ.slow-dt*.5);
- if(HQ.slow>2.5&&HQ.lv<3){HQ.lv++;HQ.slow=0;HQ.ema=.02;setTimeout(hqLod,0)}}
+ if(window.AUTO_GFX&&HQ.slow>2.5&&HQ.lv<3){HQ.lv++;HQ.slow=0;HQ.ema=.02;setTimeout(hqLod,0)}}
 function hqLod(){const L=HQ.lv;
  try{if(L>=1&&HQ.sun&&HQ.sun.shadow.mapSize.x>512){HQ.sun.shadow.mapSize.set(512,512);if(HQ.sun.shadow.map){HQ.sun.shadow.map.dispose();HQ.sun.shadow.map=null}}
   hqPR=L>=3?.7:L>=2?.82:1;if(L>=3&&HQ.sun)HQ.sun.castShadow=false;gfxApply()}catch(e){console.error('hqLod',e)}}
@@ -730,7 +730,7 @@ function frameOW(dt){
  if(osc){gn.gain.value=0}
  draw(dt)}
 function goHome(){try{droneOff()}catch(e){}ONL.leave();st='menu';engHush();ow.foot=false;walker.visible=false;pov=false;camSet(0,true);gas=false;inp.l=inp.r=inp.brk=inp.rev=0;reset();setMode('drag');showHome()}
-function qAdapt(dt){qAcc+=dt;const hi=GFX.q==='tinggi';if(++qN<(hi?90:50))return;const avg=qAcc/qN;qAcc=0;qN=0;const fl=hi?1:.75;if(avg>(hi?.027:.024)&&qPR>fl&&!GFX.user){qPR=Math.max(fl,qPR-(hi?.25:.15));renderer.setPixelRatio(qPR);rs()}}
+function qAdapt(dt){if(!window.AUTO_GFX)return;qAcc+=dt;const hi=GFX.q==='tinggi';if(++qN<(hi?90:50))return;const avg=qAcc/qN;qAcc=0;qN=0;const fl=hi?1:.75;if(avg>(hi?.027:.024)&&qPR>fl&&!GFX.user){qPR=Math.max(fl,qPR-(hi?.25:.15));renderer.setPixelRatio(qPR);rs()}}
 function engHush(){try{if(typeof AC==='undefined'||!AC)return;const t=AC.currentTime;
  if(typeof ENG!=='undefined'&&ENG.ready){const N=ENG.n||{};['idle','gas','burn','full','rev'].forEach(k=>{if(N[k]&&N[k].g)N[k].g.gain.setTargetAtTime(0,t,.04)});ENG.gasPrev=ENG.burnPrev=0;try{if(ENG.dr)drodStop(99)}catch(e){}try{if(ENG.rv)revStop(99)}catch(e){}}
  if(typeof gn!=='undefined'&&gn&&gn.gain)gn.gain.setTargetAtTime(0,t,.04)}catch(e){}}
@@ -935,10 +935,7 @@ function chFigure(){const g=new THREE.Group(),jm=std('#7a1c1c',.8),dk=std('#1d1d
  part(new THREE.SphereGeometry(.18,16,16),hm,0,1.68,0,'helm');
  part(bx(.22,.07,.05),std('#0d0d12',.3),0,1.68,.16,'visor');
  return g}
-/* Model GLB sekarang berupa file asli di folder models/. Nilai 'file:models/xxx.glb' = ambil dari file (.gz otomatis dibuka). Base64 lama tetap didukung. */
-function chGunzip(ab){const u=new Uint8Array(ab,0,2);if(u[0]===0x1f&&u[1]===0x8b)return new Response(new Blob([ab]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();return Promise.resolve(ab)}
 function chB64ToBuf(b64){
- if(typeof b64==='string'&&b64.startsWith('file:')){const u=b64.slice(5);return fetch(u).then(r=>{if(!r.ok)throw new Error('Gagal memuat '+u+' ('+r.status+')');return r.arrayBuffer()}).then(chGunzip)}
  return fetch('data:application/octet-stream;base64,'+b64).then(r=>r.arrayBuffer()).catch(()=>{const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer})}
 function chLoadModel(){if(CHV.loading||CHV.model)return;CHV.loading=true;
  chB64ToBuf(CHAR_GLB_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
@@ -1108,7 +1105,12 @@ function showVehicle(){hideHome();ov.style.display='none';if(PU)PU.close();$('ve
 async function shopLoadModel(){
  if(SH.model)return SH.model;if(SH.loading)return SH.loading;
  SH.loading=(async()=>{
-  const ab=await chB64ToBuf('file:models/vario_modification.glb.gz');
+  if(!window.SHOP_VARIO_B64)await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='vario_model.js';sc.onload=ok;sc.onerror=()=>no(new Error('vario_model.js tidak ditemukan (taruh satu folder dengan file game)'));document.head.appendChild(sc)});
+  const b64=window.SHOP_VARIO_B64;
+  let stream;
+  try{stream=(await fetch('data:application/gzip;base64,'+b64)).body}
+  catch(e){const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);stream=new Blob([u]).stream()}
+  const ab=await new Response(stream.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
   const gl=await new Promise((ok,no)=>new THREE.GLTFLoader().parse(ab,'',ok,no));
   // three r128 belum mengenal KHR_materials_emissive_strength -> terapkan manual dari JSON GLB (warna & material lain TIDAK diubah)
   const defs={};((gl.parser&&gl.parser.json&&gl.parser.json.materials)||[]).forEach(m=>{defs[m.name]=m});
@@ -1156,7 +1158,7 @@ function shopShowModel(){
  if(SH.sel==='vario150'){const m=shopDefModel();if(m){SH.piv.add(m);ld.style.display='none'}else{ld.textContent='MEMUAT MODEL…';ld.style.display='block';setTimeout(()=>{if(SH.on&&SH.cat==='kendaraan'&&SH.sel==='vario150')shopShowModel()},700)}return}
  if(SH.model){SH.piv.add(SH.model);ld.style.display='none';return}
  ld.textContent='MEMUAT MODEL…';ld.style.display='block';
- shopLoadModel().then(()=>{if(SH.on&&SH.cat==='kendaraan'&&SH.sel==='vario_mod')shopShowModel()}).catch(e=>{console.error('Toko GLB',e);ld.textContent='GAGAL MEMUAT MODEL: '+((e&&e.message)||e);ld.style.display='block'})}
+ shopLoadModel().then(()=>{if(SH.on&&SH.cat==='kendaraan'&&SH.sel==='vario_mod')shopShowModel()}).catch(()=>{ld.textContent='GAGAL MEMUAT MODEL (pastikan vario_model.js satu folder dengan game)';ld.style.display='block'})}
 function shopRender(){
  const items=$('shopItems'),info=$('shopInfo'),tabs=$('shopTabs'),clk=()=>{try{uiSound('click')}catch(e){}};
  shopMoneyUI();
@@ -1450,6 +1452,7 @@ rs();
 /* ===== GRAFIK: kualitas (normal/tinggi) + resolusi 0-100, disimpan di localStorage 'dmGfx' =====
    Normal = tampilan game yang sekarang (resolusi maks 1.75x, efek blur gerak). Tinggi = Normal + bayangan, pantulan body motor, tekstur detail, bangunan hidup (resolusi maks 2x).
    Resolusi 0-100 = 40%..100% dari batas kualitas. Selama belum disentuh pemain, auto-turun resolusi (qAdapt) tetap jalan seperti dulu. */
+window.AUTO_GFX=false; /* false = game TIDAK menurunkan grafik otomatis (resolusi & bayangan). true = perilaku lama */
 const GFX={q:'normal',res:100,user:false,blur:false};var hqPR=1;
 try{const o=JSON.parse(localStorage.getItem('dmGfx')||'null');if(o&&typeof o==='object'){if(o.q==='rendah'||o.q==='normal'||o.q==='tinggi')GFX.q=o.q;if(typeof o.res==='number'&&o.res>=0&&o.res<=100)GFX.res=Math.round(o.res);GFX.user=!!o.user}}catch(e){}
 
