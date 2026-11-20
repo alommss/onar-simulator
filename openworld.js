@@ -985,10 +985,11 @@ window.FENCE_RECTS=window.FENCE_RECTS||[];
    TRU.x = tengah trotoar (X), TRU.z0 = ujung awal, TRU.z1 = ujung akhir (ubah kalau mau lebih pendek/panjang), TRU.w = lebar, TRU.h = tinggi (model otomatis diskala ke tinggi ini).
    TRU.on=false untuk mematikan. Motor TIDAK bisa naik (jadi tembok, lihat truWall); karakter jalan kaki bisa naik (setinggi TRU.h).
    Model ditempel berulang tiap 15 m; kalau data base64 di bawah dihapus, game memuat file models/trotoar_baru.glb sebagai cadangan. */
-const TRU={on:true,x:49.2,z0:-102.9,z1:(window.GJ_Z0!=null?window.GJ_Z0:-530)-GJ.L,w:5.2,h:.5,y:0};window.TRU=TRU;
-window.truH=function(x,z){if(!TRU.on||!ow.foot)return null;return(x>=TRU.x-TRU.w/2&&x<=TRU.x+TRU.w/2&&z<=TRU.z0&&z>=TRU.z1)?TRU.h:null};
-window.truWall=function(){if(!TRU.on||ow.foot)return;const o=ow,r=.42,x0=TRU.x-TRU.w/2,x1=TRU.x+TRU.w/2,zA=TRU.z0,zB=TRU.z1,fx=-Math.sin(ow.h),fz=-Math.cos(ow.h);let hit=0;
- for(const dd of[.85,0,-.85]){const px=o.x+fx*dd,pz=o.z+fz*dd;
+/* TRU.gaps = trotoar diputus di rentang Z [atas, bawah] (ditandai merah di screenshot): Z -679,2 s/d -692,4 -> motor/karakter bisa lewat & belok di situ. Tambah/ubah/kosongkan sesuai kebutuhan. */
+const TRU={on:true,x:49.2,z0:-102.9,z1:(window.GJ_Z0!=null?window.GJ_Z0:-530)-GJ.L,w:5.2,h:.5,y:0,gaps:[[-679.2,-692.4]]};window.TRU=TRU;
+window.truH=function(x,z){if(!TRU.on||!ow.foot)return null;return(x>=TRU.x-TRU.w/2&&x<=TRU.x+TRU.w/2&&z<=TRU.z0&&z>=TRU.z1&&!TRU.gaps.some(g=>z<=g[0]&&z>=g[1]))?TRU.h:null};
+window.truWall=function(){if(!TRU.on||ow.foot)return;const o=ow,r=.42,x0=TRU.x-TRU.w/2,x1=TRU.x+TRU.w/2,fx=-Math.sin(ow.h),fz=-Math.cos(ow.h),segs=[];let hit=0,sa=TRU.z0;TRU.gaps.slice().sort((p,q)=>q[0]-p[0]).forEach(g=>{segs.push([sa,g[0]]);sa=g[1]});segs.push([sa,TRU.z1]);
+ for(const[zA,zB]of segs)for(const dd of[.85,0,-.85]){const px=o.x+fx*dd,pz=o.z+fz*dd;
   if(pz<zB-r||pz>zA+r||px<x0-r||px>x1+r)continue;
   const cx=Math.max(x0,Math.min(x1,px)),cz=Math.max(zB,Math.min(zA,pz)),dx=px-cx,dz=pz-cz,L=Math.hypot(dx,dz);
   if(L>=r)continue;let nx,nz,push;
@@ -1005,12 +1006,59 @@ try{(function(){
   const G=new THREE.Group();
   ms.forEach(o=>{const g=o.geometry.clone();g.applyMatrix4(o.matrixWorld);g.translate(-c.x,-bb.min.y,-c.z);
    const m=o.material;m.side=THREE.DoubleSide;if(m.map){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.emissiveIntensity=.42}m.needsUpdate=true;
-   const im=new THREE.InstancedMesh(g,m,n);
-   for(let i=0;i<n;i++){d.position.set(TRU.x,TRU.y,TRU.z0-pitch*(i+.5));d.updateMatrix();im.setMatrixAt(i,d.matrix)}
+   const SG=TRU._sg||(TRU._sg=(()=>{const o=[];for(let i=0;i<n;i++){let parts=[[TRU.z0-pitch*i,TRU.z0-pitch*(i+1)]];
+    TRU.gaps.forEach(gp=>{const np=[];parts.forEach(([pa,pb])=>{if(pb>=gp[0]||pa<=gp[1]){np.push([pa,pb]);return}if(pa>gp[0])np.push([pa,gp[0]]);if(pb<gp[1])np.push([gp[1],pb])});parts=np});
+    parts.forEach(p=>{if(p[0]-p[1]>.05)o.push(p)})}return o})());
+   const im=new THREE.InstancedMesh(g,m,SG.length);
+   SG.forEach((p,i)=>{const sl2=(p[0]-p[1])/Lm;d.scale.set(alongX?sl2:1,sy,alongX?1:sl2);d.position.set(TRU.x,TRU.y,(p[0]+p[1])/2);d.updateMatrix();im.setMatrixAt(i,d.matrix)});
    im.frustumCulled=false;G.add(im)});
   owG.add(G);
  }).catch(e=>console.error('TROTOAR BARU GLB',e));
 })()}catch(e){console.error('trotoar baru',e)}
+
+/* ===== FLYOVER TOL BARU (bisa dikendarai, seperti tanjakan RD) =====
+   Lebar: X 26,5 s/d 36,9 (dari koordinat screenshot 1 & 2). Mulai di Z -599 (screenshot: Z -600,4 / -597,6), memanjang ke arah -Z.
+   Naik landai D 0..D1 (tanggul padat), datar setinggi H di D1..D2 (ditopang pilar), turun D2..D3. D = jarak dari TOL2.z0.
+   Motor masuk dari ujung awal (lajur gerbang tol), di dek tertahan pagar beton kiri-kanan. TOL2.on=false untuk mematikan. */
+const TOL2={on:true,x0:26.5,x1:36.9,z0:-599,H:6.5,D1:110,D2:460,D3:570,in:false,pd:0};window.TOL2=TOL2;
+const tolY=d=>{const T=TOL2;return d<=0||d>=T.D3?0:d<T.D1?T.H*d/T.D1:d<=T.D2?T.H:T.H*(T.D3-d)/(T.D3-T.D2)};
+const tolLoc=(x,z)=>[x-(TOL2.x0+TOL2.x1)/2,TOL2.z0-z];
+window.tolH=function(x,z){const T=TOL2;if(!T.on||!T.in||ow.foot)return null;const[lx,d]=tolLoc(x,z);return(d>0&&d<T.D3&&Math.abs(lx)<=(T.x1-T.x0)/2)?tolY(d)+.05:null};
+window.tolWall=function(){const T=TOL2;if(!T.on)return;
+ const o=ow.foot?wk:ow,HW=(T.x1-T.x0)/2,cx=(T.x0+T.x1)/2,[lx,d]=tolLoc(o.x,o.z);
+ if(ow.foot)T.in=false;
+ else{if(d<=0||d>=T.D3)T.in=false;else if(!T.in&&Math.abs(lx)<HW-.5&&(T.pd<=0||T.pd>=T.D3))T.in=true;T.pd=d}
+ if(T.in){if(Math.abs(lx)>HW-.55){o.x=cx+Math.sign(lx)*(HW-.55);P.v*=.85}return}
+ const r=ow.foot?.35:.7;
+ // tanggul landai (awal & akhir) padat: tidak bisa ditembus dari samping
+ if(((d>0&&d<T.D1)||(d>T.D2&&d<T.D3))&&Math.abs(lx)<HW+r){o.x=cx+(lx<0?-1:1)*(HW+r);if(!ow.foot)P.v*=.6}
+ // pilar di bawah dek datar
+ for(let p=T.D1+20;p<T.D2-10;p+=35){const pz=T.z0-p,dx=o.x-cx,dz=o.z-pz,L=Math.hypot(dx,dz),rr=1.2+r;if(L<rr&&L>.001){o.x=cx+dx/L*rr;o.z=pz+dz/L*rr;if(!ow.foot)P.v*=.5}}};
+(function(){try{
+ const T=TOL2;if(!T.on)return;
+ const W=T.x1-T.x0,cx=(T.x0+T.x1)/2,N=T.D3/5,mid=T.D3/2,conc=std('#3a3c41',.9),O3=new THREE.Object3D(),SL=.95;
+ const dT=ctex(104,200,(g,w,h)=>{g.fillStyle='#202127';g.fillRect(0,0,w,h);sgrain(g,w,h,700,.05);g.fillStyle='#d8d8d8';[35,70].forEach(x=>{g.fillRect(x-1,10,3,30);g.fillRect(x-1,110,3,30)});g.fillRect(5,0,3,h);g.fillRect(w-8,0,3,h)},1,T.D3/20);
+ const dg=new THREE.PlaneGeometry(W,T.D3,1,N);dg.rotateX(-Math.PI/2);const pa=dg.attributes.position;
+ for(let i=0;i<pa.count;i++)pa.setY(i,tolY(mid-pa.getZ(i))+.05);dg.computeVertexNormals();
+ const dm1=new THREE.MeshStandardMaterial({map:dT,roughness:.35,metalness:.2});dm1.polygonOffset=true;dm1.polygonOffsetFactor=-5;dm1.polygonOffsetUnits=-5;
+ const top=new THREE.Mesh(dg,dm1);top.position.set(cx,0,T.z0-mid);owG.add(top);
+ const und=new THREE.Mesh(dg,new THREE.MeshStandardMaterial({color:0x2e2f33,roughness:.95,side:THREE.DoubleSide}));und.position.set(cx,-SL,T.z0-mid);owG.add(und);
+ // dinding samping: tanggul sampai tanah di tanjakan, balok setebal SL di bagian datar + tutup ujung tanggul
+ const sw=[],q=(a,b,c,d)=>sw.push(...a,...b,...c,...a,...c,...d);
+ for(let i=0;i<N;i++){const d0=i*5,d1=d0+5,sol=(d0+d1)/2<T.D1||(d0+d1)/2>T.D2,y0=tolY(d0)+.05,y1=tolY(d1)+.05,b0=sol?0:tolY(d0)-SL,b1=sol?0:tolY(d1)-SL,z0=T.z0-d0,z1=T.z0-d1;
+  [T.x0,T.x1].forEach(x=>q([x,b0,z0],[x,y0,z0],[x,y1,z1],[x,b1,z1]))}
+ [T.D1,T.D2].forEach(D=>{const z=T.z0-D;q([T.x0,0,z],[T.x0,T.H-SL,z],[T.x1,T.H-SL,z],[T.x1,0,z])});
+ const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(sw),3));sg.computeVertexNormals();
+ const wm=new THREE.Mesh(sg,new THREE.MeshStandardMaterial({color:0x3a3c41,roughness:.9,side:THREE.DoubleSide}));owG.add(wm);
+ // pagar beton kiri-kanan
+ const bI=new THREE.InstancedMesh(new THREE.BoxGeometry(.5,1,5.05),conc,N*2);let k=0;
+ for(let i=0;i<N;i++){const a=i*5,ya=tolY(a),yb=tolY(a+5);[T.x0+.25,T.x1-.25].forEach(x=>{O3.position.set(x,(ya+yb)/2+.55,T.z0-(a+2.5));O3.rotation.set(Math.atan2(yb-ya,5),0,0);O3.updateMatrix();bI.setMatrixAt(k++,O3.matrix)})}
+ bI.frustumCulled=false;owG.add(bI);
+ // pilar T (kolom + balok kepala) di bagian datar
+ for(let p=T.D1+20;p<T.D2-10;p+=35){const z=T.z0-p;
+  const col=new THREE.Mesh(new THREE.BoxGeometry(2.2,T.H-SL-1.2,2.2),conc);col.position.set(cx,(T.H-SL-1.2)/2,z);owG.add(col);
+  const cap=new THREE.Mesh(new THREE.BoxGeometry(W*.75,1.2,2.4),conc);cap.position.set(cx,T.H-SL-.6,z);owG.add(cap)}
+}catch(e){console.error('Flyover tol baru',e)}})();
 
 /* ===== GERBANG TOL (model gerbang_tol_pulomas.glb, tertanam base64 di bawah) =====
    GTOL.x / GTOL.z = titik dunia tempat TENGAH JALUR LEWAT gerbang diletakkan (default: X 28,3 / Z -566, digeser ke kiri sesuai tanda di screenshot),
