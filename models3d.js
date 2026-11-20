@@ -156,10 +156,7 @@ const VARIO_FIX4_GZ_B64=__BIG[19];
 (async()=>{try{
  if(!window.VARIO_HQ_ON)return;
  await Promise.resolve(window.__lqP).catch(()=>{});
- let stream;
- try{stream=(await fetch('data:application/gzip;base64,'+VARIO_FIX4_GZ_B64)).body}
- catch(e){const bin=atob(VARIO_FIX4_GZ_B64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);stream=new Blob([u]).stream()}
- const ab=await new Response(stream.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+ const ab=await chB64ToBuf(VARIO_FIX4_GZ_B64);
  await varioLoad(ab,false);
 }catch(e){console.error('Vario fix4',e);try{varioStatus('Gagal: '+(e&&e.message||e))}catch(_){}}})();
 hqInit();

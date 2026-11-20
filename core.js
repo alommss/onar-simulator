@@ -935,7 +935,10 @@ function chFigure(){const g=new THREE.Group(),jm=std('#7a1c1c',.8),dk=std('#1d1d
  part(new THREE.SphereGeometry(.18,16,16),hm,0,1.68,0,'helm');
  part(bx(.22,.07,.05),std('#0d0d12',.3),0,1.68,.16,'visor');
  return g}
+/* Model GLB sekarang berupa file asli di folder models/. Nilai 'file:models/xxx.glb' = ambil dari file (.gz otomatis dibuka). Base64 lama tetap didukung. */
+function chGunzip(ab){const u=new Uint8Array(ab,0,2);if(u[0]===0x1f&&u[1]===0x8b)return new Response(new Blob([ab]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();return Promise.resolve(ab)}
 function chB64ToBuf(b64){
+ if(typeof b64==='string'&&b64.startsWith('file:')){const u=b64.slice(5);return fetch(u).then(r=>{if(!r.ok)throw new Error('Gagal memuat '+u+' ('+r.status+')');return r.arrayBuffer()}).then(chGunzip)}
  return fetch('data:application/octet-stream;base64,'+b64).then(r=>r.arrayBuffer()).catch(()=>{const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer})}
 function chLoadModel(){if(CHV.loading||CHV.model)return;CHV.loading=true;
  chB64ToBuf(CHAR_GLB_B64).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
@@ -1105,12 +1108,7 @@ function showVehicle(){hideHome();ov.style.display='none';if(PU)PU.close();$('ve
 async function shopLoadModel(){
  if(SH.model)return SH.model;if(SH.loading)return SH.loading;
  SH.loading=(async()=>{
-  if(!window.SHOP_VARIO_B64)await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='vario_model.js';sc.onload=ok;sc.onerror=()=>no(new Error('vario_model.js tidak ditemukan (taruh satu folder dengan file game)'));document.head.appendChild(sc)});
-  const b64=window.SHOP_VARIO_B64;
-  let stream;
-  try{stream=(await fetch('data:application/gzip;base64,'+b64)).body}
-  catch(e){const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);stream=new Blob([u]).stream()}
-  const ab=await new Response(stream.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  const ab=await chB64ToBuf('file:models/vario_modification.glb.gz');
   const gl=await new Promise((ok,no)=>new THREE.GLTFLoader().parse(ab,'',ok,no));
   // three r128 belum mengenal KHR_materials_emissive_strength -> terapkan manual dari JSON GLB (warna & material lain TIDAK diubah)
   const defs={};((gl.parser&&gl.parser.json&&gl.parser.json.materials)||[]).forEach(m=>{defs[m.name]=m});
