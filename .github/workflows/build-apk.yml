@@ -93,6 +93,19 @@ jobs:
           mkdir -p ~/.android
           echo "$KS_B64" | tr -d '[:space:]' | base64 -d > ~/.android/debug.keystore
           keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey || { echo "::error::Keystore di secret tidak valid"; exit 1; }
+          cat >> android/app/build.gradle <<'GRADLE'
+
+          android {
+              signingConfigs {
+                  debug {
+                      storeFile file("${System.getProperty('user.home')}/.android/debug.keystore")
+                      storePassword 'android'
+                      keyAlias 'androiddebugkey'
+                      keyPassword 'android'
+                  }
+              }
+          }
+          GRADLE
       - name: Build APK
         run: |
           cd android
@@ -104,6 +117,10 @@ jobs:
           BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
           $BT/apksigner verify --verbose --print-certs onar-simulator.apk
           $BT/aapt dump badging onar-simulator.apk | head -5
+          $BT/apksigner verify --print-certs onar-simulator.apk > sig.txt 2>&1 || true
+          D=$(grep -m1 "certificate SHA-256 digest" sig.txt | awk '{print $NF}')
+          echo "Digest tanda tangan: $D"
+          if [ "$D" != "3d7e4e1bb8d33ea2f951fff232a6f68cb0a0621b1ba6bebdc31f14f428f17e60" ]; then echo "::error::Tanda tangan APK beda dari versi sebelumnya, tidak diterbitkan"; exit 1; fi
       - name: Terbitkan ke Releases
         env:
           GH_TOKEN: ${{ github.token }}
