@@ -869,3 +869,43 @@ var fuelWas=FUEL_L>0,fuelSaveT=0,fuelPanelOn=false,fuelAmt=10,fuelPosN=0,fuelPos
  addEventListener('click',e=>{const b=e.target.closest&&e.target.closest(SEL);if(!b)return;b.classList.remove('popA');requestAnimationFrame(()=>{b.classList.add('popA');setTimeout(()=>b.classList.remove('popA'),420)})},true)})();
 tapHome('hST',()=>showSettings());
 tapHome('hLC',()=>showLicense());
+
+/* ===== ASPAL BLOK (models/aspal_blok-kasar2.glb) - TAHAP 1: JALAN UTAMA =====
+   Balok aspal 4x4 m dipasang rapat di jalan utama (x tengah 40, arah -z). Aspal lama TIDAK dihapus kalau model gagal dimuat.
+   ABK.zones = daftar area [x0,x1,z0,z1] (meter, koordinat dunia). Mau tambah jalan lain: tambah satu baris di zones.
+   ABK.y = tinggi permukaan balok (0.02 = sedikit di atas jalan dasar). ABK.clean = hapus lapisan aspal/tanah lama yang rata & seluruhnya ada di dalam area.
+   ABK.on=false untuk mematikan (kembali ke aspal lama). */
+const ABK={on:true,file:'models/aspal_blok-kasar2.glb',zones:[[18.9,45.4,-530,-68.6]],y:.02,clean:true,rot:true};
+(function(){if(!ABK.on)return;try{
+ fetch(ABK.file).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status+' '+ABK.file);return r.arrayBuffer()})
+ .then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no)))
+ .then(gl=>{
+  let src=null;gl.scene.updateMatrixWorld(true);gl.scene.traverse(o=>{if(!src&&o.isMesh)src=o});
+  if(!src)throw new Error('mesh balok tidak ditemukan');
+  const geo=src.geometry.clone();geo.applyMatrix4(src.matrixWorld);geo.computeBoundingBox();
+  const bb=geo.boundingBox,bw=bb.max.x-bb.min.x,bd=bb.max.z-bb.min.z;
+  geo.translate(-(bb.min.x+bb.max.x)/2,-bb.max.y,-(bb.min.z+bb.max.z)/2); // pusat di tengah, permukaan atas tepat di y=0
+  const mat=src.material;mat.polygonOffset=true;mat.polygonOffsetFactor=-2;mat.polygonOffsetUnits=-4;mat.side=THREE.FrontSide;
+  const O=new THREE.Object3D(),col=new THREE.Color(),rs=k=>Math.abs(Math.sin(k*12.9898+4.1)*43758.5453)%1;
+  const inst=[];
+  ABK.zones.forEach(([x0,x1,z0,z1])=>{
+   const nx=Math.max(1,Math.round((x1-x0)/bw)),nz=Math.max(1,Math.round((z1-z0)/bd)),sx=(x1-x0)/(nx*bw),sz=(z1-z0)/(nz*bd);
+   for(let i=0;i<nx;i++)for(let j=0;j<nz;j++)inst.push([x0+(i+.5)*(x1-x0)/nx,z0+(j+.5)*(z1-z0)/nz,sx,sz])});
+  const im=new THREE.InstancedMesh(geo,mat,inst.length);
+  inst.forEach((p,k)=>{const rk=ABK.rot?Math.floor(rs(k)*4):0,q=rk%2; // putaran kelipatan 90 derajat; kalau ganjil, tukar skala x/z supaya tetap rapat
+   O.position.set(p[0],ABK.y,p[1]);O.rotation.set(0,rk*Math.PI/2,0);
+   O.scale.set(q?p[3]:p[2],1,q?p[2]:p[3]);O.updateMatrix();im.setMatrixAt(k,O.matrix);
+   const s=.9+rs(k+999)*.1;im.setColorAt(k,col.setRGB(s,s,s))});
+  im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;
+  im.frustumCulled=false;im.receiveShadow=true;im.userData.noCast=1;im.name='aspalBlok';owG.add(im);
+  // hapus lapisan aspal/tanah lama yang rata, tidak transparan, dan seluruhnya di dalam area balok
+  let n=0;
+  if(ABK.clean){const bx=new THREE.Box3(),e=.6;
+   owG.children.slice().forEach(o=>{if(o===im||!o.isMesh||o.isInstancedMesh||o.userData.abkKeep)return;
+    const m=o.material;if(!m||Array.isArray(m)||m.transparent||m.blending===THREE.AdditiveBlending)return;
+    bx.setFromObject(o);if(bx.isEmpty())return;
+    if(bx.max.y-bx.min.y>.06||bx.max.y>.12)return;
+    if(ABK.zones.some(([x0,x1,z0,z1])=>bx.min.x>=x0-e&&bx.max.x<=x1+e&&bx.min.z>=z0-e&&bx.max.z<=z1+e)){o.visible=false;n++}})}
+  console.log('[aspal blok] '+inst.length+' balok dipasang, '+n+' lapisan lama disembunyikan');
+ }).catch(e=>console.error('[aspal blok] gagal, aspal lama tetap dipakai:',e));
+}catch(e){console.error('aspal blok',e)}})();
