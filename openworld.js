@@ -186,10 +186,47 @@ face(28,4.65,mbas({map:signT,transparent:true,depthWrite:false,fog:false}),0,9.7
   g.fillStyle='#f6f2c8';for(let c=0;c<8;c++)g.fillRect(24+c*62,262,34,34)},1,1);
  const pm=mbas({color:0xb04a80}),fm=mbas({map:mt,color:0xcfcfcf});box(30,17,13,[pm,pm,pm,pm,fm,pm],46,8.5,-12.5)}
 // ---------- menara apartemen (jendela menyala) ----------
+/* ===== GEDUNG APARTEMEN DARI FILE GLB (models/gedung_apartemen.glb) =====
+   on:false -> balik ke gedung kotak lama. uniform:true -> proporsi asli model dijaga (tinggi bisa beda dari slot).
+   rot: putar model (kelipatan Math.PI/2). glow: terang jendela/tekstur di malam hari. */
+const APT={on:true,file:'models/gedung_apartemen.glb',uniform:false,rot:0,glow:.45,P:null,
+ recolor:true,n:0,hues:[.60,.36,.08,.76,.50,.14,.95,.68]}; // recolor:true -> garis merah tiap gedung beda warna. hues = urutan warna (0-1: .95 merah asli, .60 biru, .36 hijau, .08 oranye, .76 ungu, .50 tosca, .14 kuning, .68 indigo)
+const APT_GLSL=`uniform float uHue;
+vec3 aptRgb2hsv(vec3 c){vec4 K=vec4(0.,-1./3.,2./3.,-1.);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);float e=1e-10;return vec3(abs(q.z+(q.w-q.y)/(6.*d+e)),d/(q.x+e),q.x);}
+vec3 aptHsv2rgb(vec3 c){vec4 K=vec4(1.,2./3.,1./3.,3.);vec3 p=abs(fract(c.xxx+K.xyz)*6.-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.,1.),c.y);}
+vec3 aptRecolor(vec3 c){vec3 h=aptRgb2hsv(c);float red=max(1.-smoothstep(.03,.08,h.x),smoothstep(.82,.88,h.x));float m=red*smoothstep(.3,.5,h.y);h.x=uHue;return mix(c,aptHsv2rgb(h),m);}
+`;
+function aptTint(root,hue){root.traverse(o=>{if(!o.isMesh)return;
+ const f=m=>{const c=m.clone();c.onBeforeCompile=sh=>{sh.uniforms.uHue={value:hue};
+  sh.fragmentShader=APT_GLSL+sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n diffuseColor.rgb=aptRecolor(diffuseColor.rgb);')
+   .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance=aptRecolor(totalEmissiveRadiance);')};
+  c.customProgramCacheKey=()=>'aptTint';c.needsUpdate=true;return c};
+ o.material=Array.isArray(o.material)?o.material.map(f):f(o.material)})}
+function aptLoad(){return APT.P||(APT.P=fetch(APT.file).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status+' '+APT.file);return r.arrayBuffer()})
+ .then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+  gl.scene.traverse(o=>{if(!o.isMesh)return;(Array.isArray(o.material)?o.material:[o.material]).forEach(mt=>{
+   if(mt.map){mt.emissiveMap=mt.map;mt.emissive=new THREE.Color(0xffffff);mt.emissiveIntensity=APT.glow}
+   else if(mt.color){mt.emissive=mt.color.clone().multiplyScalar(APT.glow)}
+   mt.needsUpdate=true})});
+  gl.scene.updateMatrixWorld(true);gl.bb=new THREE.Box3().setFromObject(gl.scene);return gl}))}
+function aptPlace(tw,w,h,d,x,z){return aptLoad().then(gl=>{
+  if(!tw.parent)return true; // slot ini sudah dihapus (kena jalan LKR) -> jangan dipasang
+  const sz=gl.bb.getSize(new THREE.Vector3()),c=gl.bb.getCenter(new THREE.Vector3()),m=gl.scene.clone(true),g=new THREE.Group();
+  m.position.set(-c.x,-gl.bb.min.y,-c.z);g.add(m);
+  if(APT.recolor)aptTint(m,APT.hues[APT.n++%APT.hues.length]);
+  const sx=w/sz.x,sy=h/sz.y,sd=d/sz.z;
+  if(APT.uniform){const s=Math.min(sx,sy,sd);g.scale.set(s,s,s)}else g.scale.set(sx,sy,sd);
+  g.rotation.y=APT.rot;g.position.set(x,0,z);GP.add(g);return true
+ }).catch(e=>{console.error('GEDUNG GLB',e);return false})}
 function winTex(wall,cols,rows,lit,seed){return cv(cols*8,rows*8,(g,w,h)=>{g.fillStyle=wall;g.fillRect(0,0,w,h);for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const on=R(seed+r*31+c*7)<lit;g.fillStyle=on?(R(r*c+seed)<.7?'#ffd98c':'#fff2c9'):'#1c2028';g.fillRect(c*8+1,r*8+2,5,4)}},1,1)}
 function tower(w,d,h,x,z,wall,lit,seed,tint){const cw=Math.max(3,Math.round(w/2.7)),cd=Math.max(3,Math.round(d/2.7)),rows=Math.max(2,Math.round(h/3.4)),tc=tint||0xd0d0d0,
   mf=mbas({map:winTex(wall,cw,rows,lit,seed),color:tc}),ms_=mbas({map:winTex(wall,cd,rows,lit,seed+5),color:tc}),top=mbas({color:0x23252b});
- const tw_=box(w,h,d,[ms_,ms_,top,top,mf,mf],x,h/2,z);try{hqTower(tw_,[ms_,ms_,top,top,mf,mf],{GP,w,d,h,x,z,cw,cd,rows,wall,lit,seed,tc,R})}catch(e){console.error('hqTower',e)}return tw_}
+ const tw_=box(w,h,d,[ms_,ms_,top,top,mf,mf],x,h/2,z);
+ const fb=()=>{try{hqTower(tw_,[ms_,ms_,top,top,mf,mf],{GP,w,d,h,x,z,cw,cd,rows,wall,lit,seed,tc,R})}catch(e){console.error('hqTower',e)}};
+ if(!APT.on){fb();return tw_}
+ tw_.visible=false; // kotak lama disembunyikan; kalau GLB gagal dimuat, kotak lama dipakai lagi
+ aptPlace(tw_,w,h,d,x,z).then(ok=>{if(!ok){tw_.visible=true;fb()}});
+ return tw_}
 const WALLS=['#8a8a8f','#b32a6c','#9a968c','#2a7f78','#a03230','#6d6f78','#8c8a96'],HL=[78,64,92,70,86,60,96];
 // deretan gedung di SISI KIRI jalan lurus (150 m)
 for(let i=0;i<7;i++){const lz=-16-i*22,lx=-50-(i%2)*7;tower(17,18,HL[i],lx,lz,WALLS[i],.32,60+i*13,i%2?0xe0e0e0:0xd0d0d0);
