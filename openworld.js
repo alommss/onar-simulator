@@ -9,8 +9,8 @@ const inp={l:0,r:0,brk:0,bn:0},ow={x:40,z:0,h:0,odo:0,steer:0,cb:0},blocks=new M
 const LKR={z:-63.1,w:24,x0:19,len:200,y:.1,clear:true};
 const LFT_Z0=LKR.z-LKR.w/2-.3; // batas: mulai dari sini ke arah -z sisi kiri dikosongkan
 const GPE=Math.max(-60,Math.min(60,-(LKR.z+LKR.w/2))); // trotoar Green Pramuka dipotong di sini (sisi -z) supaya tidak nabrak jalan baru
-function lkrIn(x,z,m){const L=LKR;m=m||0;return x<=L.x0+m&&x>=L.x0-L.len-m&&Math.abs(z-L.z)<=L.w/2+m}
-function lkrH(x,z){return lkrIn(x,z,0)?LKR.y:null}
+
+
 const owT=ctex(512,512,(g,w,h)=>{g.fillStyle='#17181c';g.fillRect(0,0,w,h);g.fillStyle='#3b3b42';g.fillRect(95,0,322,h);g.fillRect(0,95,w,322);
  g.fillStyle='#202127';g.fillRect(121,0,270,h);g.fillRect(0,121,w,270);
  for(let i=0;i<24000;i++){const a=Math.random()<.5,px=a?121+Math.random()*270:Math.random()*w,py=a?Math.random()*h:121+Math.random()*270;g.fillStyle=i%2?'rgba(255,255,255,.05)':'rgba(0,0,0,.12)';g.fillRect(px,py,1.2,1.2)}
@@ -19,9 +19,7 @@ const owT=ctex(512,512,(g,w,h)=>{g.fillStyle='#17181c';g.fillRect(0,0,w,h);g.fil
 const owRoad=add(new THREE.Mesh(new THREE.PlaneGeometry(640,640),new THREE.MeshStandardMaterial({map:owT,roughness:.35,metalness:.2})),0,0,0,owG);owRoad.rotation.x=-Math.PI/2;
 const winT=ctex(64,128,(g,w,h)=>{g.fillStyle='#000';g.fillRect(0,0,w,h);for(let y=0;y<16;y++)for(let x=0;x<8;x++)if(Math.random()<.45){g.fillStyle=Math.random()<.8?'#ffd98a':'#9fd2ff';g.fillRect(x*8+1,y*8+2,5,4)}},2,3);
 const bmat=['#2b2f3a','#3a302b','#24343a','#33333a'].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.85,emissive:0xffffff,emissiveMap:winT,emissiveIntensity:.8}));
-function mkBlock(bi,bj){const g=new THREE.Group();g.position.set(bi*80,0,bj*80);
- [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{const px=sx*17,pz=sz*17;if((bi*80+px>0&&bi*80+px<110&&bj*80+pz<-515&&bj*80+pz>-1250)||(LKR.clear&&lkrIn(bi*80+px,bj*80+pz,1.5))||(bi*80+px<10&&bj*80+pz<LFT_Z0)||(bi*80+px>-37&&bi*80+px<21&&bj*80+pz>-362&&bj*80+pz<-298))return;add(new THREE.Mesh(pG,pM),px,3.6,pz,g);add(new THREE.Mesh(lG,lM),px,7.2,pz,g);const sp=new THREE.Sprite(sprM);sp.scale.set(6,6,1);sp.position.set(px,7.2,pz);g.add(sp)});
- owG.add(g);return g}
+
 /* ===== KAWASAN "GREEN PRAMUKA CITY" di sisi kiri titik spawn Open World (replika dari foto referensi) =====
    Sistem koordinat lokal grup: x = kanan pemain yang menghadap gerbang, y = atas, z+ = ke arah pemain/jalan raya. Gerbang ada di z=0. */
 (function(){try{
@@ -241,26 +239,16 @@ for(let i=0;i<15;i++){tree(-36,-14-i*10,8,4.2,300+i,'#2f7234',5);tree(36,-24-i*1
  [[-37,4],[37,4],[-22,26],[22,26]].concat(Array.from({length:12},(_,i)=>[-37,-16-i*12]),Array.from({length:12},(_,i)=>[37,-22-i*12])).filter(q=>!(q[0]===37&&q[1]===4)).forEach(([x,z])=>{box(.22,9,.22,lampH,x,4.5,z);const a=box(2.2,.18,.18,lampH,x+(x>0?-1:1)*1.0,9,z);add(new THREE.Mesh(new THREE.SphereGeometry(.32,8,8),headM),x+(x>0?-2:2)*1.0,8.85,z,GP);
   const sp=new THREE.Sprite(sprM);sp.scale.set(7,7,1);sp.position.set(x+(x>0?-2:2)*1.0,8.85,z);GP.add(sp);const p=new THREE.Mesh(new THREE.PlaneGeometry(13,13),poolM);p.rotation.x=-Math.PI/2;p.position.set(x+(x>0?-2:2)*1.0,.12,z);GP.add(p)})}
 }catch(e){console.error('GPC',e)}})();
-function updBlocks(){const T=DR.on?DR:(ow.foot?wk:ow),ci=Math.round(T.x/80),cj=Math.round(T.z/80);
- for(let i=ci-2;i<=ci+2;i++)for(let j=cj-2;j<=cj+2;j++){const k=i+','+j;if(!blocks.has(k))blocks.set(k,mkBlock(i,j))}
- blocks.forEach((g,k)=>{const [i,j]=k.split(',').map(Number);if(Math.abs(i-ci)>3||Math.abs(j-cj)>3){owG.remove(g);blocks.delete(k)}})}
 
-function setMode(m){window.__tm=-1;mode=m;const o=m==='ow';dragObjs.forEach(x=>x.visible=!o);owG.visible=o;O.obj.visible=!o;P.obj.rotation.order=o?'YXZ':'XYZ';P.obj.rotation.set(0,0,0);
- $('nos').style.display=o?'none':'';['bl','br','brk','bn','rv','bk','eye','mt'].forEach(i=>{const el=$(i);if(el)el.style.display=o?'flex':'none'});$('pb').style.display=o?'none':'';$('run').style.display='none';$('w').classList.toggle('ow',o);$('wh').style.display='flex';setWH(0);$('w').classList.remove('foot');$('joy').style.display='none';$('gas').style.display='';lastFoot=null;joyReset()}
+
+
 /* ===== KOORDINAT PETA di samping tombol MODE ONARR =====
    Tampil: X, Z (posisi dunia, satuan meter) dan H (arah hadap, derajat; 0 = menghadap -z / arah SPBU). Saat jalan kaki yang tampil posisi karakter.
    Ketuk kotaknya = salin "x:..., z:..., h:..." (h dalam radian, format sama dengan SPAWN) untuk ditempel ke chat. */
 let coordRight=-1,coordN=0,coordFlash=0;
 window.HUDS=(function(){let o={coord:1,perf:0};try{const j=JSON.parse(localStorage.getItem('dmHud')||'null');if(j)Object.assign(o,j)}catch(e){}return o})();
 window.hudSave=function(){try{localStorage.setItem('dmHud',JSON.stringify(HUDS))}catch(e){}};
-function updCoord(o){const c=document.getElementById('coord');if(!c)return;
- if(!HUDS.coord){if(c.style.display!=='none')c.style.display='none';return}
- if(c.style.display!=='block')c.style.display='block';
- const por=innerHeight>innerWidth;c.classList.toggle('por',por);
- if(por){if(c.style.right)c.style.right='';coordRight=-1}
- else if(coordRight<0||++coordN%20===0){const n=document.getElementById('onarr');if(n){const r=n.getBoundingClientRect();if(r.width){coordRight=innerWidth-r.left;c.style.right=(coordRight+6)+'px'}}}
- const deg=(((o.h*180/Math.PI)%360)+360)%360,t=performance.now()<coordFlash?'TERSALIN \u2713':'X '+o.x.toFixed(1)+'  Z '+o.z.toFixed(1)+'  H '+Math.round(deg)+'\u00b0';
- if(c._t!==t){c.textContent=t;c._t=t}}
+
 (function(){const c=document.getElementById('coord');if(!c)return;
  const fb=t=>{try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}catch(_){}};
  c.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();const o=DR.on?{x:DR.x,z:DR.z,h:DR.yaw}:(ow.foot?wk:ow),t='x:'+o.x.toFixed(1)+', z:'+o.z.toFixed(1)+', h:'+o.h.toFixed(2);
@@ -270,45 +258,20 @@ function updCoord(o){const c=document.getElementById('coord');if(!c)return;
    Motor muncul di jalur motor (x=40), sejajar tenda itu (z=-49,5), menghadap -z (arah SPBU). Ubah SPAWN.z untuk maju/mundur, SPAWN.x untuk geser kiri/kanan.
    Tips: buka game dengan "#koordinat" di akhir alamat untuk melihat x, z, h motor, lalu salin angkanya ke sini. */
 const SPAWN={x:40,z:-49.5,h:0};
-function startOW(){if(typeof FUEL_L!=='undefined'&&FUEL_L<3){FUEL_L=3;fuelWas=true;fuelSave()}ow.foot=false;walker.visible=false;pov=false;camSet(0,true);ow.x=SPAWN.x;ow.z=SPAWN.z;ow.h=SPAWN.h;ow.odo=0;ow.steer=0;P.v=0;P.th=0}
+
 const wk={x:0,z:0,h:0,v:0,t:0};let pov=false,lpitch=0;
-function mkWalker(){const g=new THREE.Group(),sk=std('#e0b090',.7),jk=std('#2f6f4a',.8),pn=std('#222833',.8),hr=std('#1a1410',.9);
- const part=(w,h,d,m,x,y,z,p)=>add(new THREE.Mesh(bx(w,h,d),m),x,y,z,p);
- const limb=(x,y,w,h,m,hand)=>{const p=new THREE.Group();p.position.set(x,y,0);part(w,h,w*1.1,m,0,-h/2,0,p);if(hand)part(w*.9,.1,w,sk,0,-h-.04,0,p);g.add(p);return p};
- part(.44,.62,.26,jk,0,1.2,0,g);
- add(new THREE.Mesh(new THREE.SphereGeometry(.14,12,12),sk),0,1.68,0,g);add(new THREE.Mesh(new THREE.SphereGeometry(.15,12,12,0,6.3,0,1.4),hr),0,1.7,0,g);
- g.userData={L:limb(-.11,.9,.16,.9,pn),R:limb(.11,.9,.16,.9,pn),AL:limb(-.28,1.48,.11,.62,jk,1),AR:limb(.28,1.48,.11,.62,jk,1)};
- g.rotation.order='YXZ';return g}
+
 const walker=mkWalker();walker.visible=false;scene.add(walker);
 const riderObj=()=>P.obj.children.find(c=>c.name==='rider');
-function toggleMount(){if(st!=='ow')return;
- if(!ow.foot){if(P.v>3)return;P.v=0;wk.x=ow.x-Math.cos(ow.h)*1.1;wk.z=ow.z+Math.sin(ow.h)*1.1;wk.h=ow.h;ow.cb=ow.h;wk.v=0;ow.foot=true;walker.visible=true;setGas(false);const r=riderObj();if(r)r.visible=false}
- else{if(Math.hypot(wk.x-ow.x,wk.z-ow.z)>3.5)return;ow.foot=false;walker.visible=false;const r=riderObj();if(r)r.visible=true}}
+
 const LB={ch:0,rel:0,bt:0,pk:0,was:false,mul:1};
 /* TENAGA MOTOR: acuan lama = 11 HP (HPV.base). HPV.hp = HP sekarang (18). Percepatan (termasuk akselerasi awal) dikali HPV.hp/HPV.base. Top speed tidak diubah. Ubah HPV.hp untuk menyetel. */
 const HPV={base:11,hp:18};HPV.k=()=>HPV.hp/HPV.base;
 // Burnout lalu gas: akselerasi awal naik (maks +55% kalau burnout lama), lalu turun pelan ke normal dalam 2,2 detik. Hanya mode ONARR.
-function launchBoost(dt,bn){
- if(santay()){LB.mul=1;LB.bt=LB.ch=LB.rel=0;LB.was=bn;return}
- if(bn)LB.ch=Math.min(1,LB.ch+dt/1.3);
- else{if(LB.was)LB.rel=1;LB.rel=Math.max(0,LB.rel-dt);if(LB.rel<=0&&LB.bt<=0)LB.ch=0}
- LB.was=bn;
- if(!bn&&gas&&LB.rel>0&&LB.ch>.12){LB.pk=.2+.35*LB.ch;LB.bt=2.2;LB.ch=0;LB.rel=0}
- if(LB.bt>0){LB.bt=Math.max(0,LB.bt-dt);LB.mul=1+LB.pk*(LB.bt/2.2)}else LB.mul=1}
+
 // Kalibrasi rasa kecepatan di jalan: 1 = skala asli, makin besar motor terasa makin cepat pada km/j yang sama (angka km/j di HUD tidak berubah)
 const FEEL=1.5;
-function stepOW(dt){
- if(DR.on&&ow.foot){wk.v=0;P.th=0;P.burn=false;P.rv=0;rpmStep(P,dt,false);return}
- const jx=ow.foot&&Math.abs(joy.x)>.12?joy.x:0;ow.steer+=(Math.max(-1,Math.min(1,(inp.l?1:0)-(inp.r?1:0)-jx))-ow.steer)*Math.min(1,dt*8);
- if(ow.foot){const ya=ow.cb+cyaw;let ix=(inp.r?1:0)-(inp.l?1:0),iy=(gas?1:0)-(inp.brk?1:0),mg=(ix||iy)?(inp.run?1:.6):0;const jx=Math.abs(joy.x)>.12?joy.x:0,jy=Math.abs(joy.y)>.12?-joy.y:0;if(jx||jy){ix=jx;iy=jy;mg=Math.min(1,Math.hypot(jx,jy))}const il=Math.hypot(ix,iy)||1;ix/=il;iy/=il;let tv=0;if(mg>0){const dx=-Math.sin(ya)*iy+Math.cos(ya)*ix,dz=-Math.cos(ya)*iy-Math.sin(ya)*ix,tg=Math.atan2(-dx,-dz);let df=tg-wk.h;df=Math.atan2(Math.sin(df),Math.cos(df));wk.h+=df*Math.min(1,dt*10);tv=(mg<.75?mg/.75*2.2:2.2+Math.min(1,(mg-.75)/.25)*3.3)*Math.max(0,1-Math.abs(df)/2.2)}wk.v+=(tv-wk.v)*Math.min(1,dt*8);
-  wk.x-=Math.sin(wk.h)*wk.v*dt;wk.z-=Math.cos(wk.h)*wk.v*dt;ow.odo+=Math.abs(wk.v)*dt;wk.t+=Math.abs(wk.v)*dt*2.6;P.th=0;P.burn=false;P.rv=0;rpmStep(P,dt,false);return}
- {const rvOK=!!(inp.rev&&P.v<.6&&!inp.bn&&!inp.brk&&!gas);P.rv=P.rv||0;P.rv+=((rvOK?-1.3:0)-P.rv)*Math.min(1,dt*(rvOK?4:9));if(Math.abs(P.rv)<.01)P.rv=0;const rb=$('rv');if(rb)rb.classList.toggle('on',!!inp.rev)}
- launchBoost(dt,!!(inp.bn&&P.v<6));
- P.th+=((gas&&(typeof FUEL_L==='undefined'||FUEL_L>0)?1:0)-P.th)*Math.min(1,dt*7);
- P.v=Math.max(0,P.v+P.th*4.6*HPV.k()*LB.mul*Math.max(0,1-Math.pow(P.v/(santay()?18.2:33),1.6))*dt-(1-P.th)*(1.2+.004*P.v*P.v)*dt-((inp.brk||(inp.bn&&P.v<6))?14*dt:0));
- P.burn=!!(inp.bn&&P.v<6);{const bb=$('bn');if(bb)bb.classList.toggle('on',P.burn)}rpmStep(P,dt,false);
- ow.h+=ow.steer*dt*FEEL*(Math.min(P.v,9)/9)*1.7/(1+P.v/22);if(P.burn)ow.h+=ow.steer*dt*1.5;if(P.rv<0)ow.h-=ow.steer*dt*.7*Math.min(1,-P.rv/1.3);
- const mv=P.v+P.rv,nx=ow.x-Math.sin(ow.h)*mv*dt*FEEL,nz=ow.z-Math.cos(ow.h)*mv*dt*FEEL;ow.x=nx;ow.z=nz;ow.odo+=(P.v+Math.abs(P.rv))*dt*FEEL;if(typeof fuelUse==='function')fuelUse((P.v+Math.abs(P.rv))*dt*FEEL)}
+
 /* ===== JALAN LAYANG (replika gambar referensi 2) =====
    Titik awal & arah ditaksir dari video (berhenti di odometer 976 m). Kalau meleset, cukup ubah RD.x, RD.z, RD.h.
    RD.x,RD.z = titik awal jalan di dunia; RD.h = arah hadap (rad, sama dengan ow.h; Math.PI = menghadap +z).
@@ -322,23 +285,15 @@ const RD_HAPUS={z0:-24,z1:-135};const RD_HAPUS2={z0:-164,z1:-481};const inHapus=
    Ubah TB.A (seberapa jauh belok, meter), TB.a0/a1 (awal-akhir belokan). TB.on=false untuk mematikan. */
 const TB={on:true,A:7,a0:71.6,a1:140};
 const tbSS=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)};
-function tbOff(z){return TB.on?TB.A*tbSS((z-TB.a0)/(TB.a1-TB.a0)):0}
-function tbYaw(z){return Math.atan((tbOff(z+.5)-tbOff(z-.5)))}
-function tbBend(g,zOf){const p=g.attributes.position;for(let i=0;i<p.count;i++)p.setX(i,p.getX(i)+tbOff(zOf(p.getX(i),p.getY(i),p.getZ(i))));p.needsUpdate=true;g.computeBoundingBox();g.computeBoundingSphere();return g}
+
+
+
 const RD={x:30,z:95,h:Math.PI,in:false,pd:0,H:6.5,D0:38,D1:150,D2:365.3,D3:477.3,HW:7.4};
-function rdLocal(x,z){const dx=x-RD.x,dz=z-RD.z,c=Math.cos(RD.h),s=Math.sin(RD.h);return[dx*c-dz*s,-(dx*s+dz*c)]}
-function rdWorld(lx,d){const c=Math.cos(RD.h),s=Math.sin(RD.h);return[RD.x+lx*c-d*s,RD.z-lx*s-d*c]}
-function rdY(d){const{H,D0,D1,D2,D3}=RD;return d<=D0||d>=D3?0:d<D1?H*(d-D0)/(D1-D0):d<=D2?H:H*(D3-d)/(D3-D2)}
-function roadH(x,z){const[lx,d]=rdLocal(x,z);if(d<-30||d>RD.D3+10||lx<-15||lx>10.6)return null;
- if(RD.in&&d>RD.D0&&d<RD.D3&&Math.abs(lx)<=RD.HW)return rdY(d)+.05;return .03}
-function roadWall(){
- if(location.hash==='#koordinat'){let e=document.getElementById('rdbg');if(!e){e=document.createElement('div');e.id='rdbg';e.style.cssText='position:absolute;left:50%;top:70px;transform:translateX(-50%);font:700 13px monospace;color:#9f9;text-shadow:0 1px 3px #000;pointer-events:none';$('hud').appendChild(e)}const o=ow.foot?wk:ow;e.textContent='x '+o.x.toFixed(1)+'  z '+o.z.toFixed(1)+'  h '+ow.h.toFixed(2)}
- if(ow.foot){RD.in=false;return}
- const[lx,d]=rdLocal(ow.x,ow.z);
- if(d<=RD.D0||d>=RD.D3)RD.in=false;
- else if(!RD.in&&Math.abs(lx)<6.4&&(RD.pd<=RD.D0||RD.pd>=RD.D3))RD.in=true;
- RD.pd=d;
- if(RD.in&&Math.abs(lx)>6.4){const dl=Math.sign(lx)*6.4-lx,c=Math.cos(RD.h),s=Math.sin(RD.h);ow.x+=dl*c;ow.z-=dl*s;P.v*=.85}}
+
+
+
+
+
 (function(){try{
 const G=new THREE.Group();G.position.set(RD.x,0,RD.z);G.rotation.y=RD.h;owG.add(G);
 const L=6042,cx=3006,conc=std('#3a3c41',.9),O3=new THREE.Object3D();
@@ -412,14 +367,11 @@ const SPR={w:6,a:23.5,b:22,xs:20.2,xe:-10},SPR_P=[];
  for(let x=L.xs;x>L.xe;x-=.5)SPR_P.push([x,zc+L.a]);
  const n=Math.ceil(Math.PI*(L.a+L.b)/2/.5);for(let i=0;i<=n;i++){const t=Math.PI*i/n;SPR_P.push([L.xe-L.b*Math.sin(t),zc+L.a*Math.cos(t)])}
  for(let x=L.xe+.5;x<=L.xs;x+=.5)SPR_P.push([x,zc-L.a])})();
-function sprY(x){if(x>=18.9)return Math.max(.03,.15-.12*(x-18.9)/1.1);if(x>=14.85)return .15;if(x>=12.5)return .06+.09*(x-12.5)/2.35;return .06}
+
 const SLOT={hz:31.2,xw:-35.5,xe:14.85,hz2:31.2,xr:20.4}; // aspal penuh SPBU: setengah lebar 31.2 (sampai Z karakter -298.8), sisi jalan raya 20
 const SPBU_WALLS=[[SLOT.xw,SLOT.xe,SPBU.z+SLOT.hz,SPBU.z+SLOT.hz+.4],[SLOT.xw,SLOT.xe,SPBU.z-SLOT.hz-.4,SPBU.z-SLOT.hz],[SLOT.xw-.4,SLOT.xw,SPBU.z-SLOT.hz-.4,SPBU.z+SLOT.hz+.4]]; // tembok 3 m: sisi +Z, sisi -Z, belakang
-function spbuWall(){const o=ow.foot?wk:ow,r=ow.foot?.35:.7;
- for(const b of SPBU_WALLS){const x0=b[0]-r,x1=b[1]+r,z0=b[2]-r,z1=b[3]+r;
-  if(o.x>x0&&o.x<x1&&o.z>z0&&o.z<z1){const d=[o.x-x0,x1-o.x,o.z-z0,z1-o.z],m=Math.min(...d),i=d.indexOf(m);
-   if(i===0)o.x=x0;else if(i===1)o.x=x1;else if(i===2)o.z=z0;else o.z=z1;if(!ow.foot)P.v*=.5}}}
-function sprH(x,z){if(x<SLOT.xw||x>SLOT.xr||Math.abs(z-SPBU.z)>SLOT.hz)return null;const r2=SPR.w*SPR.w/4;for(const p of SPR_P){const dx=x-p[0],dz=z-p[1];if(dx*dx+dz*dz<=r2)return sprY(x)}if(x<=SLOT.xe||Math.abs(z-SPBU.z)<=SLOT.hz2)return sprY(x);return null}
+
+
 (function(){try{
 const G=new THREE.Group();G.position.set(SPBU.x,0,SPBU.z);owG.add(G);
 const CY=5.6,RED='#d6201d',YEL='#ffcb0b',O3=new THREE.Object3D();
@@ -577,21 +529,10 @@ for(let z=SJ.zA-25;z>SJ.zB+5;z-=35){const o=at((SJ.zA-z)/(SJ.zA-SJ.zB));
    TROT.h = tinggi trotoar = tinggi spakbor depan motor. Diukur dari model motor: puncak spakbor depan = 0,508 m -> dipakai 0,51 m.
    MOTOR TIDAK BISA NAIK: sisi trotoar jadi tembok (lihat trotWall). Karakter jalan kaki tetap bisa naik (langsung setinggi TROT.h). */
 const TROT={x:46.2,z0:-24.4,len:982.7,w:10,h:.51}; // ujung depan digeser ke Z -24.4 (bagian Z -41.7 s/d -24.4 dihapus), ujung belakang tetap Z 958.3
-function trotIn(x,z){const T=TROT,hw=T.w/2,zs=T.z0+hw;x-=tbOff(z);if(x<T.x-hw||x>T.x+hw||z<T.z0||z>T.z0+T.len)return false;if(z>=zs)return true;const dx=x-T.x,dz=z-zs;return dx*dx+dz*dz<=hw*hw} // ujung depan = setengah lingkaran (pusat Z z0+w/2)
-function trotH(x,z){if(!ow.foot)return null;if(trotIn(x,z))return TROT.h;return islIn(x,z)?ISL.h:null}
+ // ujung depan = setengah lingkaran (pusat Z z0+w/2)
+
 // tabrakan motor vs trotoar: 3 titik badan motor (depan, tengah, belakang) didorong keluar dari kotak trotoar
-function trotWall(){if(ow.foot)return;
- const T=TROT,r=.42,hw=T.w/2,x0=T.x-hw,x1=T.x+hw,zs=T.z0+hw,z1=T.z0+T.len,fx=-Math.sin(ow.h),fz=-Math.cos(ow.h);let hit=0;
- for(const d of[.85,0,-.85]){const pz=ow.z+fz*d,px=ow.x+fx*d-tbOff(pz);let cx,cz;
-  if(pz>=zs){cx=Math.max(x0,Math.min(x1,px));cz=Math.min(z1,pz)}
-  else{const ax=px-T.x,az=pz-zs,L=Math.hypot(ax,az);if(L<=hw){cx=px;cz=pz}else{cx=T.x+ax/L*hw;cz=zs+az/L*hw}}
-  const dx=px-cx,dz=pz-cz,dd=Math.hypot(dx,dz);
-  if(dd>=r)continue;let nx,nz,push;
-  if(dd>1e-4){nx=dx/dd;nz=dz/dd;push=r-dd}
-  else if(pz<zs){const ax=px-T.x,az=pz-zs,L=Math.hypot(ax,az);if(L<1e-4){nx=0;nz=-1}else{nx=ax/L;nz=az/L}push=hw-L+r}
-  else{const a=px-x0,b=x1-px,e=z1-pz,m=Math.min(a,b,e);if(m===a){nx=-1;nz=0}else if(m===b){nx=1;nz=0}else{nx=0;nz=1}push=m+r}
-  ow.x+=nx*push;ow.z+=nz*push;hit=Math.max(hit,Math.abs(nx*fx+nz*fz))}
- if(hit>.2)P.v*=Math.max(0,1-(hit-.2)*.6)}
+
 (function(){try{
 const T=TROT,z0=T.z0,hh=T.h,HW=T.w/2,zs=z0+HW,Ls=T.len-HW;
 const pv=ctex(128,128,(g,w,h)=>{g.fillStyle='#8e8b84';g.fillRect(0,0,w,h);sgrain(g,w,h,500,.06);g.strokeStyle='rgba(0,0,0,.28)';g.lineWidth=2;g.strokeRect(1,1,w-2,h-2);g.beginPath();g.moveTo(w/2,0);g.lineTo(w/2,h);g.moveTo(0,h/2);g.lineTo(w,h/2);g.stroke()},T.w/2,T.len/2);
@@ -650,25 +591,10 @@ const ISL={x:46.4,z:-66,w:5.2,l:8,h:.2}; // bentuk OVAL: w = lebar (sumbu x), l 
 const PIL={x:46.4,z:-66,sx:2.4,sz:3};
 // daftar lokasi pulau+tiang (salinan). Tambah baris baru {x,z} untuk menambah lagi.
 const ISLS=[{x:46.4,z:-66},{x:46.8,z:-43.2}];
-function islIn(x,z){return ISLS.some(S=>{const u=(x-S.x)/(ISL.w/2),v=(z-S.z)/(ISL.l/2);return u*u+v*v<=1})}
-function rectPush(o,x0,x1,z0,z1,r,offs,fx,fz){let hit=0;
- for(const d of offs){const px=o.x+fx*d,pz=o.z+fz*d,cx=Math.max(x0,Math.min(x1,px)),cz=Math.max(z0,Math.min(z1,pz)),dx=px-cx,dz=pz-cz,dd=Math.hypot(dx,dz);
-  if(dd>=r)continue;let nx,nz,push;
-  if(dd>1e-4){nx=dx/dd;nz=dz/dd;push=r-dd}
-  else{const a=px-x0,b=x1-px,c=pz-z0,e=z1-pz,m=Math.min(a,b,c,e);if(m===a){nx=-1;nz=0}else if(m===b){nx=1;nz=0}else if(m===c){nx=0;nz=-1}else{nx=0;nz=1}push=m+r}
-  o.x+=nx*push;o.z+=nz*push;hit=Math.max(hit,Math.abs(nx*fx+nz*fz))}
- return hit}
-function ellPush(o,cx,cz,a,b,r,offs,fx,fz){let hit=0;const A=a+r,B=b+r;
- for(const d of offs){const px=o.x+fx*d,pz=o.z+fz*d,dx=px-cx,dz=pz-cz,qx=dx/A,qz=dz/B,q=Math.hypot(qx,qz);
-  if(q>=1)continue;let nx,nz,tx,tz;
-  if(q<1e-4){nx=1;nz=0;tx=cx+A;tz=cz}else{tx=cx+qx/q*A;tz=cz+qz/q*B;const gx=dx/(A*A),gz=dz/(B*B),gl=Math.hypot(gx,gz);nx=gx/gl;nz=gz/gl}
-  o.x+=tx-px;o.z+=tz-pz;hit=Math.max(hit,Math.abs(nx*fx+nz*fz))}
- return hit}
-function pillarWall(){
- if(ow.foot){for(const S of ISLS)rectPush(wk,S.x-PIL.sx/2,S.x+PIL.sx/2,S.z-PIL.sz/2,S.z+PIL.sz/2,.35,[0],0,0);return}
- const fx=-Math.sin(ow.h),fz=-Math.cos(ow.h),O=[.85,0,-.85];let hit=0;
- for(const S of ISLS){const h1=ellPush(ow,S.x,S.z,ISL.w/2,ISL.l/2,.42,O,fx,fz),h2=rectPush(ow,S.x-PIL.sx/2,S.x+PIL.sx/2,S.z-PIL.sz/2,S.z+PIL.sz/2,.42,O,fx,fz);hit=Math.max(hit,h1,h2)}
- if(hit>.2)P.v*=Math.max(0,1-(hit-.2)*.6)}
+
+
+
+
 ISLS.forEach(S=>{try{
 const I=Object.assign({},ISL,S),Q=Object.assign({},PIL,S),DB=5.5; // DB = dasar dek layang
 // pulau: lantai paving + dinding tegak + bibir terang
@@ -705,58 +631,20 @@ const rg=glowM(0xff2a2a),bk=std('#111',.6),pm=std('#3d3d42',.6,.5);
 // tinggi lantai kawasan Green Pramuka (lantai paving/aspal/rumput sedikit di atas y=0) supaya roda tidak tenggelam
 let gpcGY=0,gpcPitch=0,gpcBY=0;
 const NSW={x0:14.85,x1:18.9,y:.02,segs:[[-75.4,-298.8],[-361.2,-534.7]]}; // trotoar GLB di pinggir kiri jalan utama; terputus di apron SPBU Shell (Z -310..-350)
-function nswH(x,z){if(x<NSW.x0||x>NSW.x1)return null;for(const q of NSW.segs)if(z<=q[0]&&z>=q[1])return NSW.y+.1;return null}
-function gpcH0(x,z){const spr=sprH(x,z);if(spr!=null)return spr;const nsw=nswH(x,z);if(nsw!=null)return nsw;const sw=trotH(x,z);if(sw!=null)return sw;const rh=roadH(x,z);if(rh!=null)return rh;const lk=lkrH(x,z);if(lk!=null)return lk;const lz=x+20,lx=-z,a=Math.abs(lx);if(lz>28.4&&lz<=35&&a<=60){if(lz<30.4)return .052+.168*(lz-28.4)/2;return lz<=34.9?.22:0}if(lz>35||lz<-157||a>90)return 0;
- if(lz<=0&&lz>=-150&&a<=30)return .06;if(lz>0)return a<=60?.05:0;if(lz>=-5)return a<=60?.05:0;return .03}
+
+
 /* ===== TINGGI ASPAL NYATA (anti ban/velg tembus aspal) =====
    gpcH0 = tinggi lantai bawaan. Di area tanpa aturan khusus ia mengembalikan 0, padahal di atasnya bisa ada lapisan aspal/marka tipis (y 0.01-0.1)
    sehingga ban/velg tampak tenggelam. grdH menembakkan sinar ke bawah ke bidang-bidang lantai (anak langsung owG) dan memakai tinggi permukaan yang terlihat. */
 const GRD={list:[],n:-1,rc:new THREE.Raycaster(),o:new THREE.Vector3(),d:new THREE.Vector3(0,-1,0),cache:new Map()};
-function grdCollect(){try{const L=[];owG.children.forEach(o=>{if(!o.isMesh||o.isInstancedMesh)return;const g=o.geometry;if(!g||!g.attributes||!g.attributes.position)return;if(g.type==='PlaneGeometry'||(g.attributes.position.count===4&&g.index&&g.index.count===6))L.push(o)});GRD.list=L;GRD.n=owG.children.length;GRD.cache.clear()}catch(e){console.error('grdCollect',e)}}
-function grdH(x,z){try{if(GRD.n!==owG.children.length)grdCollect();if(!GRD.list.length)return null;
- const k=Math.round(x*10)+','+Math.round(z*10),c=GRD.cache.get(k);if(c!==undefined)return c;
- GRD.o.set(x,.2,z);GRD.rc.set(GRD.o,GRD.d);GRD.rc.near=0;GRD.rc.far=.4;let best=null;
- for(const m of GRD.list){if(!m.visible)continue;m.updateMatrixWorld();const h=GRD.rc.intersectObject(m,false);if(h.length){const y=h[0].point.y;if(y>-.05&&y<=.15&&(best==null||y>best))best=y}}
- const r=best==null?null:(best>.004?best+.02:0);if(GRD.cache.size>4000)GRD.cache.clear();GRD.cache.set(k,r);return r}catch(e){return null}}
-function gpcH(x,z){const v=gpcH0(x,z);if(v!==0)return v;const g=grdH(x,z);return g==null?0:g}
+
+
+
 /* ===== KAMERA TIDAK MENEMBUS TEMBOK SPBU SHELL =====
    Garis dari pemain ke kamera diuji terhadap tembok SPBU (tinggi 3 m) dan minimarket (tinggi 4,6 m); kalau terpotong, kamera ditarik maju ke depan tembok. */
 const CAM_WALLS=SPBU_WALLS.map(b=>[b[0],b[1],b[2],b[3],3]).concat([[-35.5,-9.5,-361.2,-349.2,4.6]]);
-function camWallClamp(T){try{
- const tx=T.x,tz=T.z,ty=(ow.foot?1.0:.9)+gpcGY,dx=cam.position.x-tx,dy=cam.position.y-ty,dz=cam.position.z-tz,m=.3;let best=1;
- for(const b of CAM_WALLS){let t0=0,t1=1,ok=true;
-  for(const q of [[tx,dx,b[0]-m,b[1]+m],[ty,dy,-1,b[4]+m],[tz,dz,b[2]-m,b[3]+m]]){const o=q[0],d=q[1],lo=q[2],hi=q[3];
-   if(Math.abs(d)<1e-9){if(o<lo||o>hi){ok=false;break}}
-   else{let a=(lo-o)/d,c=(hi-o)/d;if(a>c){const w=a;a=c;c=w}if(a>t0)t0=a;if(c<t1)t1=c;if(t0>t1){ok=false;break}}}
-  if(ok&&t0>0&&t0<best)best=t0}
- if(best<1){const k=Math.max(.06,best-.03);cam.position.set(tx+dx*k,ty+dy*k,tz+dz*k)}
-}catch(e){}}
-function frameOW(dt){
- try{ONL.tick(dt)}catch(e){console.error(e)}
- roadWall();
-  if(!ow.foot){const lzB=ow.x+20;if(ow.z>=-GPE&&ow.z<=60){const pl=window.GP_LZ;if(pl!=null){if(pl>35.9&&lzB<35.9){ow.x=-20+35.9;P.v*=.5}else if(pl<33.9&&lzB>33.9){ow.x=-20+33.9;P.v*=.5}}window.GP_LZ=ow.x+20}else window.GP_LZ=null}else window.GP_LZ=null;
-  for(const q of (window.GP_POLES||[])){const o=ow.foot?wk:ow,dx=o.x-q[0],dz=o.z-q[1],d=Math.hypot(dx,dz),r=ow.foot?.55:.8;if(d<r&&d>.001){o.x=q[0]+dx/d*r;o.z=q[1]+dz/d*r;if(!ow.foot)P.v*=.5}}
- trotWall();barWall();polWall();if(typeof fuelFrame==='function')fuelFrame(dt);pillarWall();spbuWall();const T=ow.foot?wk:ow,spd=ow.foot?Math.abs(wk.v):P.v;pov=CAM.mode===1;if(CAM.mode===5&&ow.foot)cyaw=CAM.yaw-ow.cb;updBlocks();{const Q=DR.on?DR:T;owRoad.position.set(Math.round(Q.x/80)*80,0,Math.round(Q.z/80)*80)}
- {const fx=-Math.sin(ow.h),fz=-Math.cos(ow.h),wH=d=>{const x=ow.x+fx*d,z=ow.z+fz*d;return Math.max(gpcH(x,z),gpcH(x+fx*.22,z+fz*.22),gpcH(x-fx*.22,z-fz*.22))},Hf=wH(.67),Hr=wH(-.6),tgB=Hr+(Hf-Hr)*.6/1.27,tgY=ow.foot?gpcH(wk.x,wk.z):tgB,tgP=Math.atan2(Hf-Hr,1.27);
- gpcGY+=(tgY-gpcGY)*Math.min(1,dt*(tgY>gpcGY?45:18));gpcBY+=(tgB-gpcBY)*Math.min(1,dt*(tgB>gpcBY?45:18));gpcPitch+=(tgP-gpcPitch)*Math.min(1,dt*12);
- const sp=Math.sin(gpcPitch),nb=Math.max(Hr-(gpcBY-sp*.6),Hf-(gpcBY+sp*.67),0);if(nb>0)gpcBY+=nb;
- if(!ow.foot){const ng=Math.max(Hr-(gpcGY-sp*.6),Hf-(gpcGY+sp*.67),0);if(ng>0)gpcGY+=ng}}P.obj.position.set(ow.x,ow.foot?gpcBY:gpcGY,ow.z);P.obj.rotation.set(gpcPitch,ow.h,ow.foot?0:ow.steer*LEANK(P.v)*.8);
- (P.obj.children[0]?.userData.W||[]).forEach(w=>w.rotation.x-=(P.v+(P.rv||0))*dt*FEEL/.22);
- {const tg=ow.foot?0:ow.steer*(.55-.3*Math.min(1,Math.abs(P.v)/25));P.stA=P.stA||0;P.stA+=(tg-P.stA)*Math.min(1,dt*14);steerSet(P.obj.children[0],P.stA)}
- if(ow.foot){const s=Math.sin(wk.t),a=Math.min(.9,Math.abs(wk.v)*.4),u=walker.userData;walker.position.set(wk.x,gpcGY,wk.z);walker.rotation.set(u.gm?0:-Math.min(.25,Math.abs(wk.v)*.04),wk.h,0);u.L.rotation.x=s*a;u.R.rotation.x=-s*a;u.AL.rotation.x=-s*a;u.AR.rotation.x=s*a;if(u.gm)u.gm(dt,Math.abs(wk.v));walker.visible=!pov}
- const ya=(ow.foot?ow.cb:T.h)+cyaw,lh=ow.foot?ya:T.h;
- if(pov){const d=ow.foot?.12:.08,hx=T.x-Math.sin(T.h)*d,hy=(ow.foot?1.62:1.52)+gpcGY,hz=T.z-Math.cos(T.h)*d,cl=Math.cos(lpitch);
-  cam.fov=78;cam.updateProjectionMatrix();cam.position.set(hx,hy,hz);cam.lookAt(hx-Math.sin(ya)*cl,hy+Math.sin(lpitch),hz-Math.cos(ya)*cl)}
- else if(CAM.mode>=2)camOrbit(T,spd);
- else{const D=cdist*(ow.foot?.85:1)+spd*.02,cp=Math.cos(cpitch),by=(ow.foot?1:.75)+gpcGY;cam.fov=62+Math.min(spd,45)*(ow.foot?.4:.65);cam.updateProjectionMatrix();
-  cam.position.set(T.x+Math.sin(ya)*cp*D,by+Math.sin(cpitch)*D,T.z+Math.cos(ya)*cp*D);cam.lookAt(T.x-Math.sin(lh),by+.1,T.z-Math.cos(lh))}
- if(DR.on)droneCam(dt);else camWallClamp(T);
- pl.position.set(T.x,4,T.z);
- $('mt').setAttribute('aria-label',ow.foot?'Naik motor':'Turun motor');$('mt').style.opacity=(ow.foot?Math.hypot(wk.x-ow.x,wk.z-ow.z)<=3.5:P.v<=3)?1:.4;if(ow.foot!==lastFoot){lastFoot=ow.foot;const f=ow.foot;if(f){setWH(0);setSUP(0)}$('w').classList.toggle('foot',f);['bl','br','brk','bn','rv','gas','wh'].forEach(i=>$(i).style.display=f?'none':'flex');$('joy').style.display=f?'block':'none';if(!f)joyReset()}
- {const sp=$('spd');if(sp.__t!==''){sp.__t='';sp.textContent=''}}{const tv=Math.floor(ow.odo);if(tv!==window.__tm){window.__tm=tv;$('tm').textContent=tv.toLocaleString('id-ID')+' m'}}updCoord(DR.on?{x:DR.x,z:DR.z,h:DR.yaw}:(ow.foot?wk:ow));$('rc').textContent='';$('msg').textContent='';
- rpiSet();
- if(osc){gn.gain.value=0}
- draw(dt)}
+
+
 const hold=(id,k)=>{const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch(_){}inp[k]=1});['pointerup','pointercancel'].forEach(n=>el.addEventListener(n,()=>inp[k]=0))};
 hold('bl','l');hold('br','r');hold('brk','brk');hold('bn','bn');hold('rv','rev');hold('run','run');
 $('mt').addEventListener('pointerdown',e=>{e.preventDefault();toggleMount()});
@@ -765,26 +653,23 @@ addEventListener('keydown',e=>{if(e.code==='KeyE')toggleMount()});
 const kk={ShiftLeft:'run',ShiftRight:'run',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r',KeyS:'brk',ArrowDown:'brk',KeyB:'bn',KeyV:'rev'};
 addEventListener('keydown',e=>{if(kk[e.code])inp[kk[e.code]]=1;if(e.code==='KeyW')setGas(true)});
 addEventListener('keyup',e=>{if(kk[e.code])inp[kk[e.code]]=0;if(e.code==='KeyW')setGas(false)});
-function goHome(){try{droneOff()}catch(e){}ONL.leave();st='menu';engHush();ow.foot=false;walker.visible=false;pov=false;camSet(0,true);gas=false;inp.l=inp.r=inp.brk=inp.rev=0;reset();setMode('drag');showHome()}
+
 $('bk').onclick=()=>openGameMenu();
 
 let last=performance.now();
 let qAcc=0,qN=0,qPR=renderer.getPixelRatio();
-function qAdapt(dt){qAcc+=dt;const hi=GFX.q==='tinggi';if(++qN<(hi?90:50))return;const avg=qAcc/qN;qAcc=0;qN=0;const fl=hi?1:.75;if(avg>(hi?.027:.024)&&qPR>fl&&!GFX.user){qPR=Math.max(fl,qPR-(hi?.25:.15));renderer.setPixelRatio(qPR);rs()}}
-function engHush(){try{if(typeof AC==='undefined'||!AC)return;const t=AC.currentTime;
- if(typeof ENG!=='undefined'&&ENG.ready){const N=ENG.n||{};['idle','gas','burn','full','rev'].forEach(k=>{if(N[k]&&N[k].g)N[k].g.gain.setTargetAtTime(0,t,.04)});ENG.gasPrev=ENG.burnPrev=0;try{if(ENG.dr)drodStop(99)}catch(e){}try{if(ENG.rv)revStop(99)}catch(e){}}
- if(typeof gn!=='undefined'&&gn&&gn.gain)gn.gain.setTargetAtTime(0,t,.04)}catch(e){}}
-function loop(n){if(document.hidden)return;const dt=Math.min(.05,Math.max(0,(n-last)/1000));last=n;if(st==='menu'){if(!window.__hush){window.__hush=1;engHush()}requestAnimationFrame(loop);return}window.__hush=0;qAdapt(dt);try{if(st==='ow'){stepOW(dt);frameOW(dt)}else{step(dt);frame(dt)}}catch(e){console.error(e)}if(!document.hidden)requestAnimationFrame(loop)}
+
+
+
 document.addEventListener('visibilitychange',()=>{if(document.hidden){setGas(false);if(typeof joyReset==='function')joyReset()}else{last=performance.now();requestAnimationFrame(loop)}});
 /* requestAnimationFrame(loop) dipindah ke akhir js/models3d.js supaya game loop baru mulai setelah semua file termuat */
 
 let SND=1,MUS=1;try{const a=parseFloat(localStorage.getItem('vGame')),b=parseFloat(localStorage.getItem('vMus'));if(a>=0&&a<=1)SND=a;if(b>=0&&b<=1)MUS=b}catch(e){}
-function saveVol(){try{localStorage.setItem('vGame',SND);localStorage.setItem('vMus',MUS)}catch(e){}if(window.MG)MG.gain.value=SND}
+
 const HOME_IMG=__BIG[7];
-function showHome(){if(window.ONL)ONL.leave();const bt=$('boot');if(bt)bt.remove();const h=$('home');h.style.display='flex';ov.style.display='none';ov.style.background='';st='menu';
- $('homeBg').style.backgroundImage='url('+HOME_IMG+')'}
-function hideHome(){$('home').style.display='none'}
-function tapHome(id,fn){const el=$(id);if(!el)return;el.addEventListener('click',e=>{e.preventDefault();fn()})}
+
+
+
 tapHome('hOW',()=>{audio();reset();setMode('ow');cyaw=0;cpitch=.25;startOW();st='ow';hideHome()});
 /* ===== ZEBRA CROSS: dari titik awal (X 39.4, Z -43.4) sampai titik akhir (X 21.1, Z -43.0) =====
    Belang putih berjajar di sepanjang garis A->E, tiap belang memanjang melintang garis itu (seperti foto referensi).
@@ -900,15 +785,7 @@ try{(function(){
  }).catch(e=>console.error('BARRIER GLB',e));
 })()}catch(e){console.error('barrier beton',e)}
 // tabrakan motor/karakter vs barrier: 3 titik badan motor didorong keluar dari kotak barrier
-function barWall(){const B=window.BRK;if(!B)return;const o=ow.foot?wk:ow,r=ow.foot?.3:.42,x0=B.x-B.hw,x1=B.x+B.hw;
- const fx=-Math.sin(ow.h),fz=-Math.cos(ow.h);let hit=0;
- for(const dd of(ow.foot?[0]:[.85,0,-.85])){const px=o.x+fx*dd,pz=o.z+fz*dd;
-  if(pz<B.z1-r||pz>B.z0+r||px<x0-r||px>x1+r)continue;
-  const cx=Math.max(x0,Math.min(x1,px)),cz=Math.max(B.z1,Math.min(B.z0,pz)),dx=px-cx,dz=pz-cz,L=Math.hypot(dx,dz);
-  if(L>=r)continue;let nx,nz,push;
-  if(L>1e-4){nx=dx/L;nz=dz/L;push=r-L}else{const a=px-x0,c=x1-px;if(a<c){nx=-1;nz=0;push=a+r}else{nx=1;nz=0;push=c+r}}
-  o.x+=nx*push;o.z+=nz*push;hit=Math.max(hit,Math.abs(nx*fx+nz*fz))}
- if(!ow.foot&&hit>.2)P.v*=Math.max(0,1-(hit-.2)*.6)}
+
 
 /* ===== HALTE TRANSJAKARTA PASAR BARU: dipasang tepat di koordinat X 45.4, Z -91.8 (H 181) =====
    HLT.x, HLT.z = titik tengah halte; HLT.y = tinggi alas; HLT.s = skala; HLT.rdeg = putaran (derajat). Sumbu panjang model searah jalan (Z); -90 = sisi +z model menghadap ke jalan (arah -x). HLT.on=false untuk menyembunyikan. */
@@ -949,15 +826,7 @@ try{if(POL.on)(function(){
  }).catch(e=>console.error('MOBIL POLISI GLB',e));
 })()}catch(e){console.error('mobil polisi',e)}
 // tabrakan motor/karakter vs mobil polisi: kotak berputar, 3 titik badan motor didorong keluar
-function polWall(){if(!POL.on)return;const o=ow.foot?wk:ow,r=ow.foot?.3:.42,c=Math.cos(POL.h),sn=Math.sin(POL.h),fx=-Math.sin(ow.h),fz=-Math.cos(ow.h);let hit=0;
- for(const dd of(ow.foot?[0]:[.85,0,-.85])){const px=o.x+fx*dd,pz=o.z+fz*dd,dx=px-POL.x,dz=pz-POL.z;
-  if(dx*dx+dz*dz>(POL.hl+POL.hw+r+1)**2)continue;
-  const lx=dx*c-dz*sn,lz=dx*sn+dz*c,cx=Math.max(-POL.hw,Math.min(POL.hw,lx)),cz=Math.max(-POL.hl,Math.min(POL.hl,lz)),ex=lx-cx,ez=lz-cz,L=Math.hypot(ex,ez);
-  if(L>=r)continue;let nx,nz,push;
-  if(L>1e-4){nx=ex/L;nz=ez/L;push=r-L}
-  else{const a=lx+POL.hw,b=POL.hw-lx,d1=lz+POL.hl,d2=POL.hl-lz,m=Math.min(a,b,d1,d2);if(m===a){nx=-1;nz=0}else if(m===b){nx=1;nz=0}else if(m===d1){nx=0;nz=-1}else{nx=0;nz=1}push=m+r}
-  const wx=nx*c+nz*sn,wz=-nx*sn+nz*c;o.x+=wx*push;o.z+=wz*push;hit=Math.max(hit,Math.abs(wx*fx+wz*fz))}
- if(!ow.foot&&hit>.2)P.v*=Math.max(0,1-(hit-.2)*.6)}
+
 
 /* ===== TENDA BESAR di dekat mobil polisi: pakai model tenda 3x3 m yang sama (eventdesignws, CC BY 4.0), diperbesar TND.s kali, sisi depan menghadap mobil polisi.
    TND.x, TND.z = titik tengah tenda (X 14.5, Z -78.3); TND.s = skala (1.7 -> sekitar 5 x 5 m); TND.y = tinggi alas. TND.on=false untuk menyembunyikan. */
@@ -975,23 +844,17 @@ try{if(TND.on)window.TENT_P.then(gl=>{const m=gl.scene.clone(true),g=new THREE.G
    Zona isi = di bawah kanopi SPBU Shell (X 1..15, Z -342..-318), motor harus pelan (< FUEL.maxV m/s). Bensin tersimpan di localStorage 'onarFuel'. Bensin habis = gas mati. */
 var FUEL={cap:60,price:20000,lpk:1.5,x0:1,x1:15,z0:-342,z1:-318,maxV:2};
 var FUEL_L=30;try{const v=localStorage.getItem('onarFuel');if(v!==null&&isFinite(+v))FUEL_L=Math.max(0,Math.min(FUEL.cap,+v))}catch(e){}
-function fuelSave(){try{localStorage.setItem('onarFuel',String(FUEL_L))}catch(e){}}
+
 var fuelWas=FUEL_L>0,fuelSaveT=0,fuelPanelOn=false,fuelAmt=10,fuelPosN=0,fuelPosL=-1;
-function fuelUse(m){if(!(m>0)||FUEL_L<=0)return;FUEL_L=Math.max(0,FUEL_L-m/1000*FUEL.lpk);if(FUEL_L<=0&&fuelWas){fuelWas=false;fuelToast('BENSIN HABIS! Dorong ke SPBU Shell untuk isi lagi')}}
-function fuelFmtL(n){return n.toLocaleString('id-ID',{minimumFractionDigits:0,maximumFractionDigits:1})}
-function fuelRp(n){return 'Rp '+Math.round(n).toLocaleString('id-ID')}
-function fuelToast(t){const e=document.getElementById('fuelToast');if(!e)return;e.textContent=t;e.style.display='block';clearTimeout(fuelToast.t);fuelToast.t=setTimeout(()=>{e.style.display='none'},2800)}
-function fuelMax(){return Math.max(0,Math.floor(Math.min(60,FUEL.cap-FUEL_L)*10)/10)}
-function fuelPanelUI(){
- const mx=fuelMax();fuelAmt=Math.max(0,Math.min(mx,Math.round(fuelAmt*10)/10));
- const cost=Math.round(fuelAmt*FUEL.price),ok=fuelAmt>0&&MONEY>=cost,$q=id=>document.getElementById(id);
- $q('fpAmt').textContent=fuelFmtL(fuelAmt);$q('fpCur').textContent=fuelFmtL(FUEL_L)+' / '+FUEL.cap+' L';
- $q('fpTot').textContent=fuelRp(cost);$q('fpMon').textContent=fuelRp(MONEY);$q('fpPrice').textContent=fuelRp(FUEL.price);$q('fpCap').textContent=FUEL.cap;
- const b=$q('fpOk');b.disabled=!ok;b.textContent=fuelAmt<=0?(mx<=0?'TANGKI PENUH':'ISI 0 L'):(MONEY<cost?'UANG KURANG':'BAYAR & ISI')}
-function fuelOpen(){if(fuelPanelOn||ow.foot||P.v>FUEL.maxV*1.5)return;fuelPanelOn=true;P.v=0;P.th=0;fuelAmt=Math.min(10,fuelMax());document.getElementById('fuelPanel').style.display='flex';document.getElementById('fuelBtn').style.display='none';fuelPanelUI()}
-function fuelClose(){fuelPanelOn=false;document.getElementById('fuelPanel').style.display='none'}
-function fuelPay(){const cost=Math.round(fuelAmt*FUEL.price);if(fuelAmt<=0||MONEY<cost)return;MONEY-=cost;try{saveEco()}catch(e){}
- const n=fuelAmt;FUEL_L=Math.min(FUEL.cap,FUEL_L+n);fuelWas=true;fuelSave();fuelClose();fuelToast('Isi '+fuelFmtL(n)+' L V-Power \u00b7 '+fuelRp(cost))}
+
+
+
+
+
+
+
+
+
 (function(){const $q=id=>document.getElementById(id),p=$q('fuelPanel'),btn=$q('fuelBtn');if(!p||!btn)return;
  ['pointerdown','touchstart','mousedown'].forEach(n=>p.addEventListener(n,e=>e.stopPropagation()));
  btn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();fuelOpen()});
@@ -999,24 +862,7 @@ function fuelPay(){const cost=Math.round(fuelAmt*FUEL.price);if(fuelAmt<=0||MONE
  $q('fpFull').addEventListener('click',e=>{e.preventDefault();fuelAmt=fuelMax();fuelPanelUI()});
  $q('fpNo').addEventListener('click',e=>{e.preventDefault();fuelClose()});
  $q('fpOk').addEventListener('click',e=>{e.preventDefault();fuelPay()})})();
-function fuelFrame(dt){
- const hud=document.getElementById('fuelHud');if(!hud)return;
- if(hud.style.display!=='block')hud.style.display='block';
- const por=innerHeight>innerWidth;hud.classList.toggle('por',por);
- if(por){if(hud.style.left)hud.style.left='';fuelPosL=-1}
- else if(fuelPosL<0||++fuelPosN%20===0){const n=document.getElementById('drod');if(n){const r=n.getBoundingClientRect();if(r.width){fuelPosL=r.right+6;hud.style.left=fuelPosL+'px'}}}
- // gauge
- const f=Math.max(0,Math.min(1,FUEL_L/FUEL.cap)),n=Math.ceil(f*11-1e-9),key=n+'|'+Math.round(f*400)+'|'+Math.round(FUEL_L*10);
- if(key!==fuelFrame.k){fuelFrame.k=key;
-  if(!fuelFrame.bars){fuelFrame.bars=[...hud.querySelectorAll('.fb')];fuelFrame.ar=document.getElementById('fuelArrow');fuelFrame.tx=document.getElementById('fuelTxt')}
-  fuelFrame.bars.forEach((b,i)=>b.classList.toggle('on',n>=11-i));
-  const yc=230+(1-f)*340;fuelFrame.ar.style.top='calc(var(--u)*'+(yc-44-105)+')';
-  fuelFrame.tx.textContent=fuelFmtL(FUEL_L)+' L';hud.classList.toggle('low',f<.15)}
- // tombol ISI BENSIN di zona SPBU
- const inZ=!ow.foot&&!DR.on&&ow.x>=FUEL.x0&&ow.x<=FUEL.x1&&ow.z>=FUEL.z0&&ow.z<=FUEL.z1&&P.v<FUEL.maxV,btn=document.getElementById('fuelBtn');
- if(btn){const sh=inZ&&!fuelPanelOn?'block':'none';if(btn.style.display!==sh)btn.style.display=sh}
- if(!inZ&&fuelPanelOn)fuelClose();
- fuelSaveT+=dt;if(fuelSaveT>2){fuelSaveT=0;fuelSave()}}
+
 /* ===== ANIMASI KLIK TOMBOL HOME: riak + membal ===== */
 (function(){const SEL='.homeBtn,.homeSettings,#hON,#hUN,.srv,.mdlBtn';
  addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest(SEL);if(!b)return;const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2,x=document.createElement('span');x.className='rip';x.style.cssText='width:'+d+'px;height:'+d+'px;left:'+(e.clientX-r.left-d/2)+'px;top:'+(e.clientY-r.top-d/2)+'px';b.appendChild(x);setTimeout(()=>x.remove(),650)},true);

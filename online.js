@@ -197,7 +197,7 @@ window.ONL=(function(){
 })();
 /* ===== ONLINE + USERNAME ===== */
 let USERNAME='Pemain';try{const u=localStorage.getItem('onarUser');if(u&&u.trim())USERNAME=u.trim().slice(0,16)}catch(e){}
-function setUN(){const e=$('hUNt');if(e)e.textContent=USERNAME}
+
 setUN();
 {const un=$('unIn'),ms=['onScr','unScr'];
  const open=id=>{$(id).classList.add('on')},close=id=>{$(id).classList.remove('on')};
