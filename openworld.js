@@ -975,10 +975,10 @@ window.FENCE_RECTS=window.FENCE_RECTS||[];
 
 /* ===== TROTOAR BUATAN SENDIRI (trotoar_baru.glb: sisi panjang hitam-putih, atas tile abu + tanah) =====
    Mulai tepat di koordinat X 49.2, Z -102.9 dan memanjang ke arah -Z sampai ujung jalan layang tol (GJ.z0 - GJ.L = Z -1170).
-   TRU.x = tengah trotoar (X), TRU.z0 = ujung awal, TRU.z1 = ujung akhir (ubah kalau mau lebih pendek/panjang), TRU.w = lebar, TRU.h = tinggi.
+   TRU.x = tengah trotoar (X), TRU.z0 = ujung awal, TRU.z1 = ujung akhir (ubah kalau mau lebih pendek/panjang), TRU.w = lebar, TRU.h = tinggi (model otomatis diskala ke tinggi ini).
    TRU.on=false untuk mematikan. Motor TIDAK bisa naik (jadi tembok, lihat truWall); karakter jalan kaki bisa naik (setinggi TRU.h).
    Model ditempel berulang tiap 15 m; kalau data base64 di bawah dihapus, game memuat file models/trotoar_baru.glb sebagai cadangan. */
-const TRU={on:true,x:49.2,z0:-102.9,z1:(window.GJ_Z0!=null?window.GJ_Z0:-530)-GJ.L,w:5.2,h:1.1,y:0};window.TRU=TRU;
+const TRU={on:true,x:49.2,z0:-102.9,z1:(window.GJ_Z0!=null?window.GJ_Z0:-530)-GJ.L,w:5.2,h:.5,y:0};window.TRU=TRU;
 window.truH=function(x,z){if(!TRU.on||!ow.foot)return null;return(x>=TRU.x-TRU.w/2&&x<=TRU.x+TRU.w/2&&z<=TRU.z0&&z>=TRU.z1)?TRU.h:null};
 window.truWall=function(){if(!TRU.on||ow.foot)return;const o=ow,r=.42,x0=TRU.x-TRU.w/2,x1=TRU.x+TRU.w/2,zA=TRU.z0,zB=TRU.z1,fx=-Math.sin(ow.h),fz=-Math.cos(ow.h);let hit=0;
  for(const dd of[.85,0,-.85]){const px=o.x+fx*dd,pz=o.z+fz*dd;
@@ -994,7 +994,7 @@ try{(function(){
   gl.scene.updateMatrixWorld(true);const ms=[];gl.scene.traverse(o=>{if(o.isMesh)ms.push(o)});if(!ms.length)return;
   const bb=new THREE.Box3().setFromObject(gl.scene),c=bb.getCenter(new THREE.Vector3()),sx=bb.max.x-bb.min.x,sz=bb.max.z-bb.min.z,Lm=Math.max(sx,sz),alongX=sx>=sz;
   const len=TRU.z0-TRU.z1,n=Math.max(1,Math.round(len/Lm)),pitch=len/n,sl=pitch/Lm,d=new THREE.Object3D();
-  d.rotation.y=alongX?Math.PI/2:0;d.scale.set(alongX?sl:1,1,alongX?1:sl);
+  const sy=TRU.h/Math.max(.01,bb.max.y-bb.min.y);d.rotation.y=alongX?Math.PI/2:0;d.scale.set(alongX?sl:1,sy,alongX?1:sl);
   const G=new THREE.Group();
   ms.forEach(o=>{const g=o.geometry.clone();g.applyMatrix4(o.matrixWorld);g.translate(-c.x,-bb.min.y,-c.z);
    const m=o.material;m.side=THREE.DoubleSide;if(m.map){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.emissiveIntensity=.42}m.needsUpdate=true;
