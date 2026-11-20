@@ -21,7 +21,7 @@ jobs:
         run: |
           mkdir www
           cp index.html data1.js data2.js data3.js manifest.webmanifest sw.js icon-192.png icon-512.png www/
-          cp audio.js core.js hud-stub.js led-song-data.js led-sound.js model-data.js models3d.js online.js openworld.js race.js shop.js style.css www/
+          cp audio.js core.js hud-stub.js led-song-data.js led-sound.js model-data.js models3d.js online.js openworld.js race.js shop.js style.css vario_model.js www/
           cp -r models www/models
           for f in www/models/*.gz; do gzip -c "$f" > "$f.gz" && rm "$f"; done
           sed -i "s/BUILD='__BUILD__'/BUILD='${{ github.run_number }}'/" www/index.html
