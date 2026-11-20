@@ -833,7 +833,7 @@ try{(function(){
 const HLT={on:true,x:45.4,z:-91.8,y:0,s:1,rdeg:-90,gap:.6};window.HLT=HLT;
 try{if(HLT.on)(function(){
  const HLT_B64=(typeof __BIG!=='undefined'?__BIG:[])[9];
- chB64ToBuf(HLT_B64,'halte_transjakarta.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
+ chB64ToBuf(HLT_B64,'Halte_TransJakarta_Pasar_Baru-logo.glb').catch(()=>chB64ToBuf(null,'halte_transjakarta.glb')).then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
   const m=gl.scene;m.updateMatrixWorld(true);
   m.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=true;[].concat(o.material).forEach(q=>{if(!q)return;q.side=THREE.DoubleSide;if(q.map&&!q.transparent){q.emissiveMap=q.map;q.emissive=new THREE.Color(0xffffff);q.emissiveIntensity=.45}else if(q.color&&!q.transparent){q.emissive=q.color.clone().multiplyScalar(.3)}q.needsUpdate=true})});
   const bb=new THREE.Box3().setFromObject(m),c=bb.getCenter(new THREE.Vector3());
