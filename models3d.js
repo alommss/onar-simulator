@@ -167,10 +167,13 @@ const VARIO_FIX4_GZ_B64=(typeof __BIG!=='undefined'?__BIG:[])[19];
    ab=await unz(stream)}catch(e){why='data tertanam: '+(e&&e.message||e)}
   if(!okGlb(ab)){ab=null;why=why||'data tertanam bukan GLB'}}
  else why='data tertanam kosong (__BIG[19])';
- if(!ab){console.warn('Vario fix4: '+why+' -> coba muat models/vario_fix4.glb.gz');
-  const r=await fetch('models/vario_fix4.glb.gz');if(!r.ok)throw new Error('models/vario_fix4.glb.gz HTTP '+r.status+' ('+why+')');
-  const raw=await r.arrayBuffer();ab=okGlb(raw)?raw:await unz(new Blob([raw]).stream());
-  if(!okGlb(ab))throw new Error('file models/vario_fix4.glb.gz bukan GLB valid ('+why+')')}
+ if(!ab){console.warn('Vario fix4: '+why+' -> coba muat dari folder models');
+  /* Web: models/vario_fix4.glb.gz. APK: workflow memampatkan ulang .gz jadi .gz.gz, jadi coba dua nama dan buka kompresi sampai ketemu GLB (maks. 3 lapis). */
+  const urls=['models/vario_fix4.glb.gz','models/vario_fix4.glb.gz.gz'],errs=[];
+  for(const u of urls){try{const r=await fetch(u);if(!r.ok){errs.push(u+' HTTP '+r.status);continue}
+    let raw=await r.arrayBuffer();for(let k=0;k<3&&!okGlb(raw);k++)raw=await unz(new Blob([raw]).stream());
+    if(okGlb(raw)){ab=raw;break}errs.push(u+' bukan GLB')}catch(e){errs.push(u+': '+(e&&e.message||e))}}
+  if(!ab)throw new Error('gagal dari folder models ['+errs.join('; ')+'] ('+why+')')}
  await varioLoad(ab,false);
 }catch(e){console.error('Vario fix4',e);try{varioStatus('Gagal: '+(e&&e.message||e))}catch(_){}}})();
 hqInit();
