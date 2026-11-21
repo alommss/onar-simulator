@@ -152,14 +152,25 @@ chB64ToBuf(HRW_GLB_B64,'halte_rawasari.glb').then(buf=>{
    Game mulai dengan motor ringan dulu, lalu otomatis diganti motor ini begitu selesai dimuat. Gagal dimuat -> tetap pakai motor ringan.
    Matikan dengan VARIO_HQ_ON=false kalau HP terasa berat. */
 window.VARIO_HQ_ON=true;
-const VARIO_FIX4_GZ_B64=__BIG[19];
+const VARIO_FIX4_GZ_B64=(typeof __BIG!=='undefined'?__BIG:[])[19];
+/* Cadangan: kalau data tertanam (__BIG[19]) kosong/rusak/bergeser, motor dimuat dari file models/vario_fix4.glb.gz di repo. */
 (async()=>{try{
  if(!window.VARIO_HQ_ON)return;
  await Promise.resolve(window.__lqP).catch(()=>{});
- let stream;
- try{stream=(await fetch('data:application/gzip;base64,'+VARIO_FIX4_GZ_B64)).body}
- catch(e){const bin=atob(VARIO_FIX4_GZ_B64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);stream=new Blob([u]).stream()}
- const ab=await new Response(stream.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+ const okGlb=b=>!!b&&b.byteLength>1000&&new DataView(b).getUint32(0,true)===0x46546C67;
+ const unz=st=>new Response(st.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+ let ab=null,why='';
+ if(typeof VARIO_FIX4_GZ_B64==='string'&&VARIO_FIX4_GZ_B64.length>1000){
+  try{let stream;
+   try{stream=(await fetch('data:application/gzip;base64,'+VARIO_FIX4_GZ_B64)).body}
+   catch(e){const bin=atob(VARIO_FIX4_GZ_B64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);stream=new Blob([u]).stream()}
+   ab=await unz(stream)}catch(e){why='data tertanam: '+(e&&e.message||e)}
+  if(!okGlb(ab)){ab=null;why=why||'data tertanam bukan GLB'}}
+ else why='data tertanam kosong (__BIG[19])';
+ if(!ab){console.warn('Vario fix4: '+why+' -> coba muat models/vario_fix4.glb.gz');
+  const r=await fetch('models/vario_fix4.glb.gz');if(!r.ok)throw new Error('models/vario_fix4.glb.gz HTTP '+r.status+' ('+why+')');
+  const raw=await r.arrayBuffer();ab=okGlb(raw)?raw:await unz(new Blob([raw]).stream());
+  if(!okGlb(ab))throw new Error('file models/vario_fix4.glb.gz bukan GLB valid ('+why+')')}
  await varioLoad(ab,false);
 }catch(e){console.error('Vario fix4',e);try{varioStatus('Gagal: '+(e&&e.message||e))}catch(_){}}})();
 hqInit();
