@@ -7,8 +7,41 @@ var hqPR,__hqReady,fxReady,ULT,FUEL,FUEL_L,fuelWas,fuelSaveT,fuelPanelOn,fuelAmt
 function rs(){const w=gl.clientWidth,h=gl.clientHeight;if(!w||!h)return;renderer.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix();if(window.fxResize)fxResize(w,h)}
 function gfxCeil(){const d=devicePixelRatio||1;return GFX.q==='rendah'?Math.min(d,.9):GFX.q==='normal'?Math.min(d,1.3):Math.min(d,1.5)}
 function gfxLow(){const lo=GFX.q==='rendah';try{cam.far=lo?900:7000;cam.updateProjectionMatrix();scene.fog.density=lo?.0075:.0055}catch(e){}}
-function gfxApply(){GFX.blur=GFX.q==='tinggi';try{ASP.lt.value=GFX.q==='tinggi'?0:1}catch(e){}gfxLow();const t=(GFX.user?gfxCeil()*(.4+.6*GFX.res/100):Math.min(devicePixelRatio||1,GFX.q==='tinggi'?1.75:1.15))*(GFX.q==='tinggi'?hqPR:1);renderer.setPixelRatio(t);try{qPR=t}catch(e){}rs();if(window.__hqReady)hqApply()}
+function gfxApply(){GFX.blur=GFX.q==='tinggi'&&G2.blur>0;try{ASP.lt.value=GFX.q==='tinggi'?0:1}catch(e){}gfxLow();const t=(GFX.user?gfxCeil()*(.4+.6*GFX.res/100):Math.min(devicePixelRatio||1,GFX.q==='tinggi'?1.75:1.15))*(GFX.q==='tinggi'?hqPR:1);renderer.setPixelRatio(t);try{qPR=t}catch(e){}rs();if(window.__hqReady)hqApply()}
 function gfxSet(o){Object.assign(GFX,o);GFX.user=true;try{localStorage.setItem('dmGfx',JSON.stringify({q:GFX.q,res:GFX.res,user:true}))}catch(e){}gfxApply()}
+/* ===== OPSI GRAFIK TINGGI PER FITUR (G2) =====
+   Tiap fitur: 0 MATI, 1 RENDAH, 2 SEDANG, 3 TINGGI. Hanya aktif kalau kualitas grafik = TINGGI. Disimpan di localStorage 'dmGfx2'. */
+function g2Save(){try{localStorage.setItem('dmGfx2',JSON.stringify(G2))}catch(e){}}
+function g2Set(k,v){G2[k]=v;g2Save();try{g2Apply();if(k==='refl')g2Reskin()}catch(e){console.error('g2Set',e)}}
+function g2Reskin(){try{if(!HQ.on)return;if(P&&P.sk)skin(P,P.sk[0],P.sk[1]);if(O&&O.sk)skin(O,O.sk[0],O.sk[1]);if(typeof HB!=='undefined'&&HB.set)HB.set()}catch(e){console.error('g2Reskin',e)}}
+/* Pudarkan bayangan di tepi kotak bayangan (supaya tidak ada garis batas kasar). Dilewati kalau teks shader three.js tidak cocok. */
+function g2PatchShadow(){try{const C=THREE.ShaderChunk,k='shadowmap_pars_fragment',s=C[k];if(!s||s.indexOf('hqEdge')>=0)return;
+ const a=s.indexOf('float getShadow(');if(a<0)return;const b=s.indexOf('return shadow;',a);if(b<0||s.slice(a,b).indexOf('shadowCoord')<0)return;
+ C[k]=s.slice(0,b)+'vec2 hqEdge=abs(shadowCoord.xy-0.5)*2.0;shadow=mix(1.0,shadow,1.0-smoothstep(0.70,1.0,max(hqEdge.x,hqEdge.y)));\n\t\t'+s.slice(b)}catch(e){console.error('g2PatchShadow',e)}}
+function g2Apply(){
+ const on=!!HQ.on;
+ try{ASP.d.value=on?G2.road:0;ASP.ns.value=[.8,.8,1.1,1.5][G2.road];if(on&&!ASP.z.value)ASP.z.value=HQ.NT.value||(HQ.NT.value=hqMakeNoise())}catch(e){}
+ GFX.blur=on&&G2.blur>0;
+ try{pl.intensity=on?0:2.4}catch(e){} /* lampu yang mengikuti motor dimatikan di Grafik Tinggi */
+ if(HQ.sun){const L=G2.shadow,C=[null,{ms:1024,ext:24},{ms:2048,ext:32},{ms:HQ.big?4096:2048,ext:40}][L];
+  HQ.sun.castShadow=on&&L>0&&HQ.lv<3;
+  if(C){const sh=HQ.sun.shadow;if(sh.mapSize.x!==C.ms){sh.mapSize.set(C.ms,C.ms);if(sh.map){sh.map.dispose();sh.map=null}}
+   HQ.ext=C.ext;const sc=sh.camera;sc.left=-C.ext;sc.right=C.ext;sc.top=C.ext;sc.bottom=-C.ext;sc.updateProjectionMatrix()}
+  (HQ.inst||[]).forEach(o=>{o.castShadow=on&&L>=3})}
+ if(!HQ.dl){HQ.dl=[];for(let i=0;i<6;i++){const l=new THREE.PointLight(0xffb870,0,26,1.6);l.visible=false;scene.add(l);HQ.dl.push(l)}}
+ HQ.dlN=on?[0,2,4,6][G2.light]:0;HQ.dl.forEach((l,i)=>{l.visible=i<HQ.dlN;if(i>=HQ.dlN)l.intensity=0});
+ HQ.pools.forEach(p=>p.visible=on&&G2.light<2);HQ.dlc=0}
+function g2Frame(fx,fz){
+ const N=HQ.dlN|0;if(!N||!HQ.dl)return;HQ.dlc=(HQ.dlc|0)+1;if(HQ.dlc%12!==1)return;
+ const c=[],L=HQ.lampS;for(let i=0;i<L.length;i++){const w=L[i].w;if(!w)continue;const dx=w.x-fx,dz=w.z-fz,d=dx*dx+dz*dz;if(d<1600)c.push({d,w})}
+ c.sort((a,b)=>a.d-b.d);
+ HQ.dl.forEach((l,i)=>{const q=c[i];if(q&&i<N){l.position.set(q.w.x,q.w.y-.3,q.w.z);l.intensity=2.4}else l.intensity=0})}
+function g2Warn(){return '<div style="max-height:64vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:4px"><p style="margin:6px 0 10px;padding:9px 11px;border:1px solid #ffb02099;border-radius:10px;background:#ffb02014;font-size:12.5px;line-height:1.45;text-align:left">⚠️ Kalo dirasa berat, sesuain aja, jangan maksa kalo kentang awokawok 😂</p>'}
+function g2Box(){
+ if(GFX.q!=='tinggi')return '<p style="font-size:12px;opacity:.7;text-align:left;margin:4px 0 12px">Pilih kualitas TINGGI untuk mengatur bloom, bayangan, pantulan, dll.</p></div>';
+ const I=[['bloom','Bloom','Lampu dan cahaya terang berpendar.'],['blur','Motion blur','Efek blur gerak saat ngebut.'],['shadow','Bayangan','Bayangan halus untuk motor, karakter, tol, SPBU, halte, barier, dll. Tinggi = paling halus & jangkauan terjauh.'],['refl','Pantulan body motor','Cat motor mengilap dan memantulkan lampu kota.'],['light','Pencahayaan','Lampu jalan benar-benar menerangi aspal & benda sekitar. Lampu yang mengikuti motor dimatikan.'],['road','Tekstur jalan','Aspal lebih nyata: butiran, tambalan, retak, noda, relief.']];
+ return I.map(r=>'<div style="margin:14px 0;text-align:left"><div class="tg" style="margin:0 0 6px"><span>'+r[1]+'</span></div><div class="gSegs" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'+[0,1,2,3].map(i=>'<button id="g2_'+r[0]+i+'" class="'+(G2[r[0]]===i?'on':'')+'">'+G2N[i]+'</button>').join('')+'</div><p style="font-size:12px;opacity:.7;margin:6px 0 0">'+r[2]+'</p></div>').join('')+'</div>'}
+function g2Wire(){['bloom','blur','shadow','refl','light','road'].forEach(k=>{for(let i=0;i<4;i++){const b=$('g2_'+k+i);if(b)b.onclick=()=>{g2Set(k,i);for(let j=0;j<4;j++){const x=$('g2_'+k+j);if(x)x.classList.toggle('on',j===i)}}}})}
 function ctex(w,h,fn,rx,ry){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.isAsph=/#202127/.test(String(fn))?1:0;t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx||1,ry||1);t.anisotropy=Math.min(MAXA,4);return t}
 function sgrain(g,w,h,n,a){n=Math.max(30,Math.min(380,((n||900)/10)|0));a=Math.min(a||.05,.035);
  for(let i=0;i<n;i++){const x=Math.random()*w,y=Math.random()*h,r=5+Math.random()*11,lt=i%2===0,al=lt?a:Math.min(.05,a*1.6),c=lt?'255,255,255':'0,0,0';
@@ -66,9 +99,9 @@ function hqPhys(m0,t,k){
  if(glass){p.roughness=.04;p.metalness=0;p.envMapIntensity=k*2.2;p.clearcoat=1;p.clearcoatRoughness=.03}
  else if(rubber){p.envMapIntensity=k*.5}
  else{p.roughness=Math.max(.1,rough*(metal>.6?.8:.6));if(metal<.5)p.metalness=Math.min(.45,metal+.2);
-  p.envMapIntensity=k*(metal>.6?1.25:1.6);p.clearcoat=metal>.6?0:1;p.clearcoatRoughness=.05}
+  p.envMapIntensity=k*(metal>.6?1.25:1.6);p.clearcoat=metal>.6?0:(G2.refl>=2?1:0);p.clearcoatRoughness=.05}
  return p}
-function hqBike(root,r,k){const t=hqEnvTex(r);if(!t)return;const K=Math.max(k,.95),mc=new Map();
+function hqBike(root,r,k){const t=hqEnvTex(r);if(!t)return;const K=Math.max(k,.95)*G2_RK[G2.refl],mc=new Map();
  root.traverse(o=>{if(!o.isMesh||!o.material||Array.isArray(o.material))return;const m0=o.material;let m=mc.get(m0);if(!m){m=hqPhys(m0,t,K);mc.set(m0,m)}o.material=m})}
 function hqAfterSkin(b){if(!HQ.on||!b||!b.obj||!HQ.blobM)return;
  const bl=new THREE.Mesh(HQ.blobG,HQ.blobM);bl.rotation.x=-Math.PI/2;bl.position.set(0,.025,0);bl.renderOrder=2;bl.layers.set(1);b.obj.add(bl);(HQ.blobL=HQ.blobL||[]).push({bl,o:b.obj});HQ.dirty=true}
@@ -128,15 +161,16 @@ function hqScan(){
  scene.traverse(o=>{
   if(o.userData.hqS)return;
   if(o.isSprite){o.userData.hqS=1;
-   if(o.material===sprM&&o.parent&&o.parent!==scene){HQ.lampS.push({s:o,b:o.scale.x,ph:HQ.lampS.length*1.7});
+   if(o.material===sprM&&o.parent&&o.parent!==scene){{const w=new THREE.Vector3();try{o.getWorldPosition(w)}catch(e){}HQ.lampS.push({s:o,b:o.scale.x,ph:HQ.lampS.length*1.7,w})}
     let rt=o;while(rt.parent&&rt.parent!==scene)rt=rt.parent;if(rt!==owG)return;
-    const p=new THREE.Mesh(new THREE.PlaneGeometry(10,10),HQ.poolM);p.rotation.x=-Math.PI/2;p.position.set(o.position.x,.13,o.position.z);p.renderOrder=1;o.parent.add(p);p.userData.hqS=1;HQ.pools.push(p)}
+    const p=new THREE.Mesh(new THREE.PlaneGeometry(10,10),HQ.poolM);p.rotation.x=-Math.PI/2;p.position.set(o.position.x,.13,o.position.z);p.renderOrder=1;o.parent.add(p);p.userData.hqS=1;p.visible=G2.light<2;HQ.pools.push(p)}
    return}
   if(!o.isMesh)return;o.userData.hqS=1;
   const mats=Array.isArray(o.material)?o.material:[o.material],mat=mats[0];if(!mat)return;
   const glow=mat.blending===THREE.AdditiveBlending||(mat.transparent&&mat.depthWrite===false)||mat.visible===false||mat.isShaderMaterial||mat.isSpriteMaterial;
   const gt=o.geometry&&o.geometry.type,flat=gt==='PlaneGeometry'||gt==='RingGeometry'||gt==='CircleGeometry';
   o.receiveShadow=!glow;o.castShadow=!glow&&!flat&&!o.isInstancedMesh&&!mat.transparent&&!o.userData.noCast&&!(gt==='BufferGeometry'&&(()=>{const g=o.geometry;if(!g.boundingBox)g.computeBoundingBox();return (g.boundingBox.max.y-g.boundingBox.min.y)*Math.abs(o.scale.y)<.3})());
+  if(o.isInstancedMesh&&!glow&&!flat&&!mat.transparent&&!o.userData.noCast){(HQ.inst=HQ.inst||[]).push(o);o.castShadow=!!HQ.on&&G2.shadow>=3}
   if(!o.isSkinnedMesh&&allowed(o))mats.forEach(m=>{
    if(!m||!m.isMeshStandardMaterial||m.isMeshPhysicalMaterial||m.transparent||m.alphaTest>0||m.userData.hqD)return;
    const ground=gt==='PlaneGeometry',glossy=m.roughness<.5;
@@ -157,6 +191,7 @@ function hqFrame(c){
  HQ.spot.visible=false; /* lampu sorot di tanah dimatikan: bayangan/cahaya di SPBU harus menetap, tidak ikut motor/kamera */
  if(HQ.sky)HQ.sky.position.copy(c.position);HQ.stars.position.copy(c.position);HQ.moon.position.set(c.position.x-1500,c.position.y+1900,c.position.z-2300);
  if(T-HQ.ts>3||HQ.dirty){HQ.ts=T;HQ.dirty=false;hqScan()}
+ g2Frame(fx,fz);
  HQ.blink.forEach(k=>{k.s.material.opacity=((T*.7+k.ph)%1)<.18?1:.06});
  HQ.leds.forEach(l=>l.m.color.setHSL((T*.04+l.ph)%1,.85,.55));
  const nl=((HQ.fc=(HQ.fc|0)+1)&1)?0:Math.min(HQ.lampS.length,200);for(let i=0;i<nl;i++){const l=HQ.lampS[i];l.s.scale.setScalar(l.b*(1+.045*Math.sin(T*2.1+l.ph)))}
@@ -180,7 +215,7 @@ function hqApply(){
   HQ.blobG=new THREE.PlaneGeometry(1.2,2.4);HQ.blobM=new THREE.MeshBasicMaterial({map:HQ.blobT,transparent:true,depthWrite:false,opacity:.7});
   HQ.poolM=poolM.clone();HQ.poolM.opacity=.34;
   try{hqBuildTowers()}catch(e){console.error('hqTowers',e)}}
- HQ.sun.visible=on;HQ.sun.castShadow=on&&HQ.lv<3;HQ.spot.visible=false;HQ.stars.visible=on;HQ.moon.visible=on;if(HQ.sky)HQ.sky.visible=on;
+ HQ.sun.visible=on;HQ.sun.castShadow=on&&G2.shadow>0&&HQ.lv<3;HQ.spot.visible=false;HQ.stars.visible=on;HQ.moon.visible=on;if(HQ.sky)HQ.sky.visible=on;
  if(HQ.hemi){HQ.hemi.intensity=on?.85:.7;HQ.hemi.color.setHex(on?0x5a6fb0:0x6677aa);HQ.hemi.groundColor.setHex(on?0x2a2220:0x181820)}
  renderer.toneMappingExposure=on?1.22:1.15;if(!on&&HQ.beam)HQ.beam.visible=false;
  HQ.sw.forEach(r=>{if(r.hq)r.mesh.material=on?r.hq:r.orig});
@@ -189,12 +224,13 @@ function hqApply(){
  const env=on?hqEnvTex(renderer):null;
  HQ.mats.forEach(m=>{if(m.userData.hqEnv){m.envMap=env;m.envMapIntensity=m.userData.hqEI||.2;m.needsUpdate=true}});
  if(on)HQ.dirty=true;
+ g2Apply();
  if(ch){try{if(P&&P.sk)skin(P,P.sk[0],P.sk[1]);if(O&&O.sk)skin(O,O.sk[0],O.sk[1]);if(typeof HB!=='undefined'&&HB.set)HB.set()}catch(e){console.error('hqApply',e)}}}
 function hqInit(){
  try{
   HQ.bumpOK=!!(renderer.capabilities.isWebGL2||renderer.extensions.has('OES_standard_derivatives'));
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  const big=renderer.capabilities.maxTextureSize>=4096,sun=new THREE.DirectionalLight(0xa9bbff,1.6);
+  g2PatchShadow();const big=HQ.big=renderer.capabilities.maxTextureSize>=4096,sun=new THREE.DirectionalLight(0xa9bbff,1.6);
   sun.castShadow=false;sun.visible=false;sun.shadow.mapSize.set(1024,1024);
   const sc=sun.shadow.camera;sc.left=-HQ.ext;sc.right=HQ.ext;sc.top=HQ.ext;sc.bottom=-HQ.ext;sc.near=.5;sc.far=260;sc.updateProjectionMatrix();
   sun.shadow.bias=-.0004;sun.shadow.normalBias=.04;scene.add(sun);scene.add(sun.target);HQ.sun=sun;
@@ -211,7 +247,7 @@ function hqInit(){
   dragObjs.forEach(o=>HQ.dragSet.add(o));
   const _rr=renderer.render;
   renderer.render=function(s,c){if(HQ.on&&s===scene){try{hqFrame(c)}catch(e){if(HQ.err++<3)console.error('hqFrame',e)}}return _rr.call(this,s,c)};
-  const _env0=envBike;envBike=function(root,r,k){_env0(root,r,k);if(GFX.q==='tinggi'){try{hqBike(root,r,k)}catch(e){console.error('hqBike',e)}}};
+  const _env0=envBike;envBike=function(root,r,k){_env0(root,r,k);if(GFX.q==='tinggi'&&G2.refl>0){try{hqBike(root,r,k)}catch(e){console.error('hqBike',e)}}};
   const _skin0=skin;skin=function(b,col,jac){_skin0(b,col,jac);try{hqAfterSkin(b)}catch(e){console.error('hqSkin',e)}};
   const _ce=console.error;console.error=function(){try{const a=arguments[0];if(HQ.on&&typeof a==='string'&&a.indexOf('THREE.WebGLProgram')===0&&!HQ.failed){HQ.failed=true;setTimeout(hqFallback,0)}}catch(e){}return _ce.apply(console,arguments)};
   __hqReady=true;hqApply();
@@ -269,7 +305,7 @@ function fxLines(dt){
  fc.clearRect(0,0,FW,FH);fxTrack(dt);if(fxS<.04||santay())return;fxBikeScr();
  // motion blur ringan: salinan frame diperbesar sedikit dari titik tengah, ditumpuk transparan
  try{const src=renderer.domElement;fc.save();fc.translate(fxBX,fxBY);
-  (GFX.blur?[[1.015,.22],[1.032,.14]]:[]).forEach(q=>{const k=1+(q[0]-1)*fxS;fc.globalAlpha=q[1]*fxS;fc.save();fc.scale(k,k);fc.drawImage(src,-fxBX,-fxBY,FW,FH);fc.restore()});
+  (GFX.blur?G2_MB[G2.blur]:[]).forEach(q=>{const k=1+(q[0]-1)*fxS;fc.globalAlpha=q[1]*fxS;fc.save();fc.scale(k,k);fc.drawImage(src,-fxBX,-fxBY,FW,FH);fc.restore()});
   fc.restore()}catch(e){}
  const cx=FW*.5,cy=FH*.46,R=Math.hypot(FW,FH)*.5,inner=R*(.36-.07*fxS);
  const vg=fc.createRadialGradient(cx,cy,inner,cx,cy,R);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,'+(.38*fxS).toFixed(3)+')');fc.fillStyle=vg;fc.fillRect(0,0,FW,FH);
@@ -348,14 +384,14 @@ function ultRender(){
    const o={minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,depthBuffer:false,stencilBuffer:false};
    U.r1=new THREE.WebGLRenderTarget(bw,bh,o);U.r2=new THREE.WebGLRenderTarget(bw,bh,o);U.bw=bw;U.bh=bh}
   renderer.setRenderTarget(RT);renderer.render(scene,cam);
-  U.q.material=U.mA;U.mA.uniforms.t.value=RT.texture;U.mA.uniforms.px.value.set(1.5/W,1.5/H);U.mA.uniforms.th.value=U.K.th;
-  renderer.setRenderTarget(U.r1);renderer.render(U.sc,pC);
+  U.q.material=U.mA;U.mA.uniforms.t.value=RT.texture;U.mA.uniforms.px.value.set(1.5/W,1.5/H);U.mA.uniforms.th.value=U.K.th+G2_BTH[G2.bloom];const BIT=G2_BIT[G2.bloom];
+  if(BIT>0){renderer.setRenderTarget(U.r1);renderer.render(U.sc,pC)}
   U.q.material=U.mB;
-  for(let i=0;i<2;i++){
+  for(let i=0;i<BIT;i++){
    U.mB.uniforms.t.value=U.r1.texture;U.mB.uniforms.d.value.set(1.2/bw,0);renderer.setRenderTarget(U.r2);renderer.render(U.sc,pC);
    U.mB.uniforms.t.value=U.r2.texture;U.mB.uniforms.d.value.set(0,1.2/bh);renderer.setRenderTarget(U.r1);renderer.render(U.sc,pC)}
   const u=U.mC.uniforms;u.t.value=RT.texture;u.b.value=U.r1.texture;u.res.value.set(W,H);u.tm.value=(performance.now()*.001)%97;
-  u.bk.value=U.K.bk;u.vg.value=U.K.vg;u.gr.value=U.K.gr;u.ca.value=U.K.ca;
+  u.bk.value=U.K.bk*G2_BK[G2.bloom];u.vg.value=U.K.vg;u.gr.value=U.K.gr;u.ca.value=U.K.ca;
   U.q.material=U.mC;renderer.setRenderTarget(null);renderer.render(U.sc,pC)
  }catch(e){ULT.err++;try{renderer.setRenderTarget(null)}catch(_){}console.error('ultra',e);if(ULT.err>2)ULT.ok=false;renderer.render(scene,cam)}}
 function draw(dt){
@@ -885,11 +921,11 @@ function engineSound(dt){
 function showSettings(from,tab){const fg=from==='game';if(fg)hideHome();ov.style.background=fg?'':'#05060d73';ov.style.display='flex';tab=tab||'g';
  const row=(id,t,v)=>'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>'+t+'</span><span id="'+id+'v">'+Math.round(v*100)+'%</span></div><input id="'+id+'" type="range" min="0" max="100" value="'+Math.round(v*100)+'" style="width:100%;height:32px;accent-color:#ffb020"></div>';
  const seg=(id,t,on)=>'<button id="'+id+'" class="'+(on?'on':'')+'">'+t+'</button>';
- const D={rendah:'Untuk HP kentang: resolusi turun, efek blur gerak mati, jarak pandang lebih pendek, suara motor pemain lain dikurangi. Anti-alias (tepi halus) baru mati setelah game dibuka ulang.',normal:'Tampilan standar game seperti sekarang.',tinggi:'Ultra realistis: langit malam bergradasi, bloom (lampu berpendar), warna sinematik + vignette, tekstur lebih realistis, bayangan dinamis, pantulan body motor, bangunan lebih hidup (jendela berkedip, lampu atap, LED), bintang & bulan, lampu depan motor. Sudah dioptimalkan agar ringan; beban otomatis diturunkan bila HP terasa lag.'};
+ const D={rendah:'Untuk HP kentang: resolusi turun, efek blur gerak mati, jarak pandang lebih pendek, suara motor pemain lain dikurangi. Anti-alias (tepi halus) baru mati setelah game dibuka ulang.',normal:'Tampilan standar game seperti sekarang.',tinggi:'Ultra realistis: langit malam bergradasi, bloom (lampu berpendar), warna sinematik + vignette, tekstur lebih realistis, bayangan dinamis, pantulan body motor, bangunan lebih hidup (jendela berkedip, lampu atap, LED), bintang & bulan. Tiap efek (bloom, motion blur, bayangan, pantulan, pencahayaan, tekstur jalan) bisa diatur sendiri di bawah.'};
  const side='<div class="stgSide"><button id="stG" type="button" class="stgT'+(tab==='g'?' on':'')+'">GRAFIK</button><button id="stV" type="button" class="stgT'+(tab==='v'?' on':'')+'">VOLUME</button><button id="stH" type="button" class="stgT'+(tab==='h'?' on':'')+'">TAMPILAN</button><button id="stP" type="button" class="stgT'+(tab==='p'?' on':'')+'">PROFILE</button></div>';
  const pane=tab==='g'
-  ?'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Kualitas grafik</span></div><div class="gSegs">'+seg('gqR','RENDAH',GFX.q==='rendah')+seg('gqN','NORMAL',GFX.q==='normal')+seg('gqT','TINGGI',GFX.q==='tinggi')+'</div><p id="gqD" style="font-size:12px;opacity:.7;margin:8px 0 0"></p></div>'
-   +'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Resolusi</span><span id="grv">'+GFX.res+'</span></div><input id="gr" type="range" min="0" max="100" value="'+GFX.res+'" style="width:100%;height:32px;accent-color:#ffb020"></div>'
+  ?g2Warn()+'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Kualitas grafik</span></div><div class="gSegs">'+seg('gqR','RENDAH',GFX.q==='rendah')+seg('gqN','NORMAL',GFX.q==='normal')+seg('gqT','TINGGI',GFX.q==='tinggi')+'</div><p id="gqD" style="font-size:12px;opacity:.7;margin:8px 0 0"></p></div>'
+   +'<div style="margin:18px 0;text-align:left"><div class="tg" style="margin:0 0 8px"><span>Resolusi</span><span id="grv">'+GFX.res+'</span></div><input id="gr" type="range" min="0" max="100" value="'+GFX.res+'" style="width:100%;height:32px;accent-color:#ffb020"></div>'+g2Box()
   :tab==='h'
   ?[['coord','Koordinat (X Z H)','Kotak posisi di bagian atas layar.']].map(r=>'<div style="margin:14px 0;text-align:left"><div class="tg" style="margin:0 0 6px"><span>'+r[1]+'</span></div><div class="gSegs">'+seg('hu_'+r[0]+'1','ON',HUDS[r[0]])+seg('hu_'+r[0]+'0','OFF',!HUDS[r[0]])+'</div><p style="font-size:12px;opacity:.7;margin:6px 0 0">'+r[2]+'</p></div>').join('')
   :tab==='p'
@@ -898,10 +934,10 @@ function showSettings(from,tab){const fg=from==='game';if(fg)hideHome();ov.style
  card.innerHTML='<h1>PENGATURAN</h1><div class="stgWrap">'+side+'<div class="stgPane">'+pane+'</div></div><button id="stC" class="gmB">LANJUTKAN</button>';
  if(tab==='g'){
   const sync=()=>{$('gqR').classList.toggle('on',GFX.q==='rendah');$('gqN').classList.toggle('on',GFX.q==='normal');$('gqT').classList.toggle('on',GFX.q==='tinggi');$('gqD').textContent=D[GFX.q]};sync();
-  $('gqR').onclick=()=>{gfxSet({q:'rendah',res:Math.min(GFX.res,75)});$('gr').value=GFX.res;$('grv').textContent=GFX.res;sync();try{camToast('Grafik Rendah aktif. Buka ulang game agar anti-alias mati')}catch(e){}};
-  $('gqN').onclick=()=>{gfxSet({q:'normal'});sync()};
-  $('gqT').onclick=()=>{gfxSet({q:'tinggi'});sync()};
-  let tm=0;$('gr').oninput=e=>{const v=Math.max(0,Math.min(100,+e.target.value|0));$('grv').textContent=v;clearTimeout(tm);tm=setTimeout(()=>gfxSet({res:v}),90)}
+  $('gqR').onclick=()=>{gfxSet({q:'rendah',res:Math.min(GFX.res,75)});$('gr').value=GFX.res;$('grv').textContent=GFX.res;sync();showSettings(from,'g');try{camToast('Grafik Rendah aktif. Buka ulang game agar anti-alias mati')}catch(e){}};
+  $('gqN').onclick=()=>{gfxSet({q:'normal'});sync();showSettings(from,'g')};
+  $('gqT').onclick=()=>{gfxSet({q:'tinggi'});sync();showSettings(from,'g')};
+  g2Wire();let tm=0;$('gr').oninput=e=>{const v=Math.max(0,Math.min(100,+e.target.value|0));$('grv').textContent=v;clearTimeout(tm);tm=setTimeout(()=>gfxSet({res:v}),90)}
  }else if(tab==='h'){
   ['coord'].forEach(k=>{const a=$('hu_'+k+'1'),b=$('hu_'+k+'0');
    const set=v=>{HUDS[k]=v?1:0;hudSave();a.classList.toggle('on',!!v);b.classList.toggle('on',!v);try{window.hudApply&&window.hudApply()}catch(e){}};
@@ -1466,6 +1502,9 @@ rs();
    Normal = tampilan game yang sekarang (resolusi maks 1.75x, efek blur gerak). Tinggi = Normal + bayangan, pantulan body motor, tekstur detail, bangunan hidup (resolusi maks 2x).
    Resolusi 0-100 = 40%..100% dari batas kualitas. Selama belum disentuh pemain, auto-turun resolusi (qAdapt) tetap jalan seperti dulu. */
 window.AUTO_GFX=false; /* false = game TIDAK menurunkan grafik otomatis (resolusi & bayangan). true = perilaku lama */
+const G2={bloom:2,blur:2,shadow:2,refl:2,light:2,road:2},G2N=['MATI','RENDAH','SEDANG','TINGGI'];
+const G2_BTH=[0,.08,0,-.04],G2_BIT=[0,1,2,3],G2_BK=[0,.55,1,1.45],G2_RK=[0,.5,1,1.5],G2_MB=[[],[[1.012,.16]],[[1.015,.22],[1.032,.14]],[[1.014,.26],[1.03,.2],[1.05,.13]]];
+try{const o=JSON.parse(localStorage.getItem('dmGfx2')||'null');if(o&&typeof o==='object')for(const k in G2)if(Number.isInteger(o[k])&&o[k]>=0&&o[k]<=3)G2[k]=o[k]}catch(e){}
 const GFX={q:'normal',res:100,user:false,blur:false};var hqPR=1;
 try{const o=JSON.parse(localStorage.getItem('dmGfx')||'null');if(o&&typeof o==='object'){if(o.q==='rendah'||o.q==='normal'||o.q==='tinggi')GFX.q=o.q;if(typeof o.res==='number'&&o.res>=0&&o.res<=100)GFX.res=Math.round(o.res);GFX.user=!!o.user}}catch(e){}
 
@@ -1479,16 +1518,16 @@ const pl=new THREE.PointLight(0xffc27a,2.4,30);scene.add(pl);
 /* ===== ASPAL FOTO: Asphalt002 (warna + normal + roughness, 1024 px, ubin tanpa sambungan) dipasang ke SEMUA aspal game lewat koordinat dunia =====
    Marka (garis putih/kuning, lajur hijau, kerb) tetap dipertahankan: foto hanya menggantikan area aspal gelap.
    Atur: AK = kecerahan aspal (naikkan kalau terlalu gelap), AS = ukuran ubin foto (meter), NS = kekuatan relief. */
-const ASP={lt:{value:GFX.q==='tinggi'?0:1},on:{value:0},c:{value:null},n:{value:null},r:{value:null},k:{value:.12},ns:{value:.8}};
+const ASP={lt:{value:GFX.q==='tinggi'?0:1},on:{value:0},c:{value:null},n:{value:null},r:{value:null},k:{value:.12},ns:{value:.8},d:{value:0},z:{value:null}};
 (function(){try{const L=new THREE.TextureLoader();let cnt=0;
  const mk=(k,sl)=>{const t=L.load('data:image/jpeg;base64,'+ASP_B64[k],()=>{if(++cnt>=3)ASP.on.value=1});t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=Math.min(MAXA,4);return t};
  ASP.c.value=mk('c');ASP.n.value=mk('n');ASP.r.value=mk('r');
  const P=THREE.MeshStandardMaterial.prototype,baseKey=THREE.Material.prototype.customProgramCacheKey;
  P.customProgramCacheKey=function(){return(this.map&&this.map.isAsph)?'aspPhoto1':baseKey.call(this)};
  window.__aspHook=function(sh){
-  sh.uniforms.uAspC=ASP.c;sh.uniforms.uAspN=ASP.n;sh.uniforms.uAspR=ASP.r;sh.uniforms.uAspOn=ASP.on;sh.uniforms.uAspK=ASP.k;sh.uniforms.uAspNS=ASP.ns;sh.uniforms.uAspLt=ASP.lt;
+  sh.uniforms.uAspC=ASP.c;sh.uniforms.uAspN=ASP.n;sh.uniforms.uAspR=ASP.r;sh.uniforms.uAspOn=ASP.on;sh.uniforms.uAspK=ASP.k;sh.uniforms.uAspNS=ASP.ns;sh.uniforms.uAspLt=ASP.lt;sh.uniforms.uAspD=ASP.d;sh.uniforms.uAspZ=ASP.z;
   sh.vertexShader='varying vec3 vAW;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\n vAW=(modelMatrix*vec4(transformed,1.0)).xyz;');
-  sh.fragmentShader='varying vec3 vAW;\nuniform sampler2D uAspC;\nuniform sampler2D uAspN;\nuniform sampler2D uAspR;\nuniform float uAspOn;\nuniform float uAspK;\nuniform float uAspNS;\nuniform float uAspLt;\n'+sh.fragmentShader
+  sh.fragmentShader='varying vec3 vAW;\nuniform sampler2D uAspC;\nuniform sampler2D uAspN;\nuniform sampler2D uAspR;\nuniform float uAspOn;\nuniform float uAspK;\nuniform float uAspNS;\nuniform float uAspLt;\nuniform float uAspD;\nuniform sampler2D uAspZ;\nfloat aSt=0.0;float aGr=0.5;\n'+sh.fragmentShader
    .replace('#include <map_fragment>',[
     '#include <map_fragment>',
     'vec2 aU1=vAW.xz/vec2(2.4,1.55);',
@@ -1496,10 +1535,19 @@ const ASP={lt:{value:GFX.q==='tinggi'?0:1},on:{value:0},c:{value:null},n:{value:
     'vec3 aPc;if(uAspLt>.5){aPc=pow(texture2D(uAspC,aU1).rgb,vec3(2.2));}else{aPc=pow(mix(texture2D(uAspC,aU1).rgb,texture2D(uAspC,aU2).rgb,.45),vec3(2.2));}',
     'float aLum=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));',
     'float aM=uAspOn*(1.0-smoothstep(.05,.10,aLum));',
-    'diffuseColor.rgb=mix(diffuseColor.rgb,aPc*uAspK*mix(1.0,.55,smoothstep(1.0,5.0,vAW.y)),aM);'].join('\n'))
+    'diffuseColor.rgb=mix(diffuseColor.rgb,aPc*uAspK*mix(1.0,.55,smoothstep(1.0,5.0,vAW.y)),aM);',
+    'if(uAspD>.5&&aM>.01){vec2 dW=vAW.xz;float dD=length(vViewPosition);float nr=1.0-smoothstep(5.0,45.0,dD);',
+    ' float pA=texture2D(uAspZ,dW/110.0+vec2(.13,.71)).r;float pB=texture2D(uAspZ,dW/37.0+vec2(.52,.19)).g;',
+    ' float lum=mix(.78,1.16,smoothstep(.38,.70,pA))*mix(.90,1.08,pB);',
+    ' aGr=texture2D(uAspC,dW/.62).g;lum*=mix(1.0,.7+.6*aGr,nr*(.32+.22*uAspD));',
+    ' aSt=smoothstep(.66,.84,texture2D(uAspZ,dW/29.0+vec2(.3,.6)).g);lum*=1.0-.30*aSt*(.4+.2*uAspD);',
+    ' if(uAspD>1.5){float cm=smoothstep(.52,.74,texture2D(uAspZ,dW/74.0+vec2(.5,.2)).r);float cn=texture2D(uAspZ,dW/9.0+vec2(.8,.4)).b;',
+    '  float cr=1.0-smoothstep(.0,.012+.0016*dD,abs(cn-.5));lum*=1.0-cr*cm*(.26+.12*uAspD)*(1.0-.6*(1.0-nr));}',
+    ' diffuseColor.rgb*=mix(1.0,lum,aM);}'].join('\n'))
    .replace('#include <roughnessmap_fragment>',[
     '#include <roughnessmap_fragment>',
-    'if(uAspLt<.5)roughnessFactor=mix(roughnessFactor,clamp(texture2D(uAspR,aU1).r,.25,1.0),aM*.6);'].join('\n'))
+    'if(uAspLt<.5)roughnessFactor=mix(roughnessFactor,clamp(texture2D(uAspR,aU1).r,.25,1.0),aM*.6);',
+    'if(uAspD>.5)roughnessFactor=clamp(roughnessFactor*(1.0-.4*aSt*aM)*(.94+.1*aGr),.12,1.0);'].join('\n'))
    .replace('#include <normal_fragment_maps>',[
     '#include <normal_fragment_maps>',
     'if(uAspLt<.5){float aUp=clamp(dot(normalize(normal),normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz)),0.,1.);',
