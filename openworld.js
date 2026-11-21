@@ -1101,3 +1101,81 @@ window.FENCE_RECTS=window.FENCE_RECTS||[];
    const pm=poolM.clone();pm.opacity=.4;const pool=new THREE.Mesh(new THREE.PlaneGeometry(9,9),pm);pool.rotation.x=-Math.PI/2;const w=W(-3.3,-1.85);pool.position.set(w[0],.1,w[1]);pool.renderOrder=1;owG.add(pool)}
  }).catch(e=>console.error('GERBANG TOL GLB',e));
 }catch(e){console.error('gerbang tol',e)}})();
+
+/* ===== JARAK RENDER JAUH: semua bangunan/trotoar tetap kelihatan walau dari jauh banget =====
+   Penyebab sebelumnya (core.js gfxLow): cam.far cuma 7000 (900 di grafik "rendah") dan kabut FogExp2 density .0055 membuat benda >~500 m memudar jadi warna kabut.
+   Sekarang: far = RJ.far, kabut hampir dimatikan (RJ.fog). Naikkan RJ.fog (mis. .0004) kalau mau sedikit kabut lagi. RJ.on=false untuk mengembalikan perilaku lama. */
+const RJ={on:true,far:40000,fog:1e-5};
+try{(function(){
+ const fix=()=>{try{if(!RJ.on)return;if(cam.far<RJ.far){cam.far=RJ.far;cam.updateProjectionMatrix()}if(scene.fog&&scene.fog.density!==undefined&&scene.fog.density>RJ.fog)scene.fog.density=RJ.fog}catch(e){}};
+ const old=window.gfxLow;
+ window.gfxLow=function(){try{if(typeof old==='function')old.apply(this,arguments)}catch(e){}fix()};
+ fix();setInterval(fix,1000);
+})()}catch(e){console.error('jarak render jauh',e)}
+
+
+/* ===== LANGIT MALAM REALISTIS (pengganti warna polos) =====
+   Bintang besar-kecil diambil dari gambar langit.png (45 bintang: posisi, ukuran, warna), ditambah ribuan bintang redup, pita Bima Sakti, gradasi langit, dan cahaya kota tipis di dekat horizon.
+   Bintang berkelap-kelip halus & memudar dekat horizon (ekstingsi atmosfer). Langit selalu ikut kamera (tidak ada parallax), jadi kelihatan tak terhingga jauhnya.
+   SKY.on=false untuk mematikan. SKY.mw = terang Bima Sakti, SKY.tw = kelap-kelip (0 = diam), SKY.city = cahaya kota oranye, SKY.n = jumlah bintang redup, SKY.nmw = bintang padat di pita Bima Sakti. */
+const SKY={on:true,mw:1,tw:.3,city:1,n:3200,nmw:2600};
+const SKY_IMG=[[0.2813,0.0866,11909,0.65,0.76,1.0],[0.1855,0.3682,9646,0.64,0.75,1.0],[0.9519,0.3772,9247,0.68,0.78,1.0],[0.5682,0.7331,9046,0.64,0.74,1.0],[0.1857,0.7076,8624,0.67,0.77,1.0],[0.7473,0.5333,8574,0.65,0.76,1.0],[0.7174,0.2079,8529,0.66,0.77,1.0],[0.9088,0.7394,8199,0.7,0.78,1.0],[0.3996,0.9259,6572,0.73,0.81,1.0],[0.3455,0.5215,6534,0.73,0.81,1.0],[0.5681,0.4231,3529,0.81,0.88,1.0],[0.0591,0.2339,3047,0.8,0.87,1.0],[0.6986,0.8965,2048,0.83,0.89,1.0],[0.3194,0.843,1846,0.85,0.91,1.0],[0.4459,0.2665,1822,0.84,0.89,1.0],[0.7813,0.0433,1722,0.82,0.88,1.0],[0.9723,0.1641,1691,0.82,0.87,1.0],[0.9701,0.8259,1683,0.86,0.91,1.0],[0.0743,0.7907,1523,0.88,0.92,1.0],[0.8915,0.2661,1313,0.86,0.91,1.0],[0.1673,0.954,1254,0.89,0.91,1.0],[0.9206,0.5792,1248,0.9,0.93,1.0],[0.4284,0.7326,1131,0.85,0.88,1.0],[0.5276,0.1158,1108,0.91,0.94,1.0],[0.4936,0.0583,1071,0.89,0.93,1.0],[0.9725,0.9541,1059,0.91,0.92,1.0],[0.1334,0.6055,1036,0.9,0.92,1.0],[0.1745,0.2073,956,0.89,0.91,1.0],[0.2906,0.3369,954,0.86,0.88,1.0],[0.0324,0.4595,949,0.89,0.91,1.0],[0.2906,0.6481,949,0.88,0.9,1.0],[0.4729,0.9256,946,0.9,0.93,1.0],[0.8468,0.8509,936,0.9,0.91,1.0],[0.623,0.3112,926,0.87,0.91,1.0],[0.6536,0.6578,908,0.87,0.89,1.0],[0.0568,0.0442,902,0.84,0.89,1.0],[0.3558,0.1642,877,0.82,0.86,1.0],[0.0335,0.5995,859,0.89,0.93,1.0],[0.8038,0.4311,858,0.84,0.9,1.0],[0.0324,0.8805,850,0.85,0.89,1.0],[0.7867,0.7325,757,0.86,0.91,1.0],[0.5856,0.8481,741,0.9,0.91,1.0],[0.9712,0.4605,673,0.79,0.82,1.0],[0.4844,0.5835,665,0.86,0.9,1.0],[0.1091,0.3626,509,0.85,0.9,1.0]]; // [u,v,total terang,r,g,b] dari langit.png
+try{(function(){
+ if(!SKY.on)return;
+ let sd=20261121;const R=()=>{sd=(sd*1664525+1013904223)>>>0;return sd/4294967296};
+ const pos=[],col=[],siz=[],php=[],spk=[];
+ const add=(x,y,z,size,r,g,b,sp)=>{const l=Math.hypot(x,y,z)||1;pos.push(x/l,y/l,z/l);col.push(r,g,b);siz.push(size);php.push(R()*6.2832);spk.push(sp)};
+ const tcol=()=>{const t=R();return t<.1?[1,.78,.55]:t<.3?[1,.92,.78]:t<.65?[.95,.96,1]:[.72,.82,1]};
+ // 1) bintang dari gambar langit.png (peta ke belahan langit atas, luas merata)
+ SKY_IMG.forEach(s=>{const y=1-s[1]*.97,rr=Math.sqrt(Math.max(0,1-y*y)),a=s[0]*Math.PI*2,b=Math.max(0,Math.min(1,s[2]/12000)),k=.6+.4*b;
+  add(rr*Math.cos(a),y,rr*Math.sin(a),7+b*19,s[3]*k,s[4]*k,s[5]*k,b>.4?1:0)});
+ // 2) bintang redup tersebar (banyak redup, sedikit terang, beragam warna)
+ for(let i=0;i<SKY.n;i++){const y=.015+.985*R(),rr=Math.sqrt(1-y*y),a=R()*6.2832,b=Math.pow(R(),4.5),c=tcol(),k=.22+.78*b;
+  add(rr*Math.cos(a),y,rr*Math.sin(a),2.4+b*4.2,c[0]*k,c[1]*k,c[2]*k,b>.8?1:0)}
+ // 3) pita Bima Sakti: bidang galaksi miring + inti terang
+ const nx=.38,ny=.74,nz=-.55,nl=Math.hypot(nx,ny,nz),N=[nx/nl,ny/nl,nz/nl];
+ let U=[N[1]*0-N[2]*1,N[2]*0-N[0]*0,N[0]*1-N[1]*0];const ul=Math.hypot(U[0],U[1],U[2]);U=U.map(v=>v/ul);
+ const W=[N[1]*U[2]-N[2]*U[1],N[2]*U[0]-N[0]*U[2],N[0]*U[1]-N[1]*U[0]],TH=2.1;
+ const gauss=()=>{let u=0;for(let i=0;i<4;i++)u+=R();return(u-2)*1.15};
+ for(let i=0,n=0;n<SKY.nmw&&i<SKY.nmw*8;i++){const th=R()*6.2832;if(R()>.3+.7*(.5+.5*Math.cos(th-TH)))continue;
+  const lat=gauss()*.1,c=Math.cos(th),s=Math.sin(th),x=U[0]*c+W[0]*s+N[0]*lat,y=U[1]*c+W[1]*s+N[1]*lat,z=U[2]*c+W[2]*s+N[2]*lat;
+  if(y<.02)continue;n++;const cc=tcol(),k=.12+.38*R();add(x,y,z,2+R()*1.6,cc[0]*k,cc[1]*k,cc[2]*k,0)}
+ const CORE=[U[0]*Math.cos(TH)+W[0]*Math.sin(TH),U[1]*Math.cos(TH)+W[1]*Math.sin(TH),U[2]*Math.cos(TH)+W[2]*Math.sin(TH)];
+ const VS='mat4 v=viewMatrix;v[3]=vec4(0.,0.,0.,1.);vec4 p=projectionMatrix*v*vec4(position*10.,1.);p.z=p.w*.99999;gl_Position=p;';
+ // ---- kubah langit: gradasi + cahaya kota + Bima Sakti ----
+ const domeM=new THREE.ShaderMaterial({depthWrite:false,fog:false,side:THREE.BackSide,
+  uniforms:{uN:{value:new THREE.Vector3(N[0],N[1],N[2])},uC:{value:new THREE.Vector3(CORE[0],CORE[1],CORE[2])},uMW:{value:SKY.mw},uCity:{value:SKY.city}},
+  vertexShader:'varying vec3 vD;void main(){vD=position;'+VS+'}',
+  fragmentShader:`precision highp float;varying vec3 vD;uniform vec3 uN,uC;uniform float uMW,uCity;
+float h3(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+float vn(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);
+ return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float fbm(vec3 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*vn(p);p=p*2.03+17.1;a*=.5;}return s;}
+void main(){vec3 d=normalize(vD);float e=d.y;
+ vec3 zen=vec3(.003,.005,.016),mid=vec3(.014,.024,.058),hor=vec3(.06,.075,.125);
+ vec3 c=mix(hor,mid,smoothstep(0.,.2,e));c=mix(c,zen,smoothstep(.2,.9,e));
+ c+=vec3(.11,.07,.045)*exp(-max(e,0.)*7.5)*uCity*.6;
+ float up=smoothstep(0.,.22,e);
+ float lat=dot(d,uN),band=exp(-lat*lat/(2.*.12*.12)),core=pow(max(dot(d,uC),0.),3.);
+ float n1=fbm(d*3.2),n2=fbm(d*11.+5.),dust=smoothstep(.45,.7,fbm(d*5.5+9.));
+ float mw=band*(.45+1.*core)*(.5+.9*n1)*(1.-.7*dust*band);
+ vec3 mc=mix(vec3(.42,.5,.72),vec3(.95,.78,.55),core*.75);
+ c+=mc*(mw*.1+band*n2*.022)*up*uMW;
+ c+=(h3(d*1731.)-.5)/200.;
+ gl_FragColor=vec4(c,1.);}`});
+ const dome=new THREE.Mesh(new THREE.SphereGeometry(1,40,24),domeM);dome.frustumCulled=false;dome.renderOrder=-1000;
+ // ---- bintang (titik berpendar + kilau salib untuk bintang terang) ----
+ const g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('aCol',new THREE.Float32BufferAttribute(col,3));
+ g.setAttribute('aSize',new THREE.Float32BufferAttribute(siz,1));g.setAttribute('aPh',new THREE.Float32BufferAttribute(php,1));g.setAttribute('aSp',new THREE.Float32BufferAttribute(spk,1));
+ const starM=new THREE.ShaderMaterial({transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending,uniforms:{uT:{value:0},uPR:{value:1},uTw:{value:SKY.tw}},
+  vertexShader:'attribute vec3 aCol;attribute float aSize,aPh,aSp;uniform float uT,uPR,uTw;varying vec3 vC;varying float vE,vSp;void main(){'+VS+
+   'float tw=1.-uTw*(.5+.5*sin(uT*(2.+aPh*.6)+aPh*7.))*(.35+.65*(1.-position.y));vC=aCol*tw;vE=position.y;vSp=aSp;gl_PointSize=aSize*uPR;}',
+  fragmentShader:`precision highp float;varying vec3 vC;varying float vE,vSp;
+void main(){vec2 q=gl_PointCoord*2.-1.;float r=length(q);
+ float a=exp(-r*r*7.)+exp(-r*r*2.4)*.22+vSp*(exp(-abs(q.x)*16.)*exp(-abs(q.y)*2.2)+exp(-abs(q.y)*16.)*exp(-abs(q.x)*2.2))*.5;
+ a*=smoothstep(0.,.2,vE);if(a<.004)discard;gl_FragColor=vec4(vC,a);}`});
+ const stars=new THREE.Points(g,starM);stars.frustumCulled=false;stars.renderOrder=-999;
+ stars.onBeforeRender=(r)=>{starM.uniforms.uT.value=performance.now()/1000;starM.uniforms.uPR.value=r.getPixelRatio();starM.uniforms.uTw.value=SKY.tw;domeM.uniforms.uMW.value=SKY.mw;domeM.uniforms.uCity.value=SKY.city};
+ owG.add(dome);owG.add(stars);
+})()}catch(e){console.error('langit malam',e)}
