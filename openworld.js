@@ -305,8 +305,11 @@ const walker=mkWalker();walker.visible=false;scene.add(walker);
 const riderObj=()=>P.obj.children.find(c=>c.name==='rider');
 
 const LB={ch:0,rel:0,bt:0,pk:0,was:false,mul:1};
-/* TENAGA MOTOR: acuan lama = 11 HP (HPV.base). HPV.hp = HP sekarang (18). Percepatan (termasuk akselerasi awal) dikali HPV.hp/HPV.base. Top speed tidak diubah. Ubah HPV.hp untuk menyetel. */
-const HPV={base:11,hp:18};HPV.k=()=>HPV.hp/HPV.base;
+/* TENAGA MOTOR: acuan lama = 11 HP (HPV.base). HPV.hp = HP sekarang (9, sebelumnya 18). Percepatan (termasuk akselerasi awal) dikali HPV.hp/HPV.base.
+   TOP SPEED: HPV.vmax (m/s, 29.72 = ~107 km/j; sebelumnya batas fisika di core.js 33 m/s = ~119 km/j). Di core.js gas menambah kecepatan dengan faktor (1-(v/33)^1.6), jadi HPV.k() dikali rasio faktor vmax terhadap faktor 33 -> dorongan hilang mulus saat mendekati vmax.
+   Mode SANTAYY (batas 18.2) tidak ikut diubah kecuali HP-nya. Setel HPV.hp dan HPV.vmax untuk mengatur. */
+const HPV={base:11,hp:9,vmax:29.72};
+HPV.k=()=>{const k=HPV.hp/HPV.base;try{if(typeof santay==='function'&&santay())return k;const v=(typeof P!=='undefined'&&P)?P.v:0,g=x=>Math.max(0,1-Math.pow(v/x,1.6)),d=g(33);return d<1e-6?k:k*g(HPV.vmax)/d}catch(e){return k}};
 // Burnout lalu gas: akselerasi awal naik (maks +55% kalau burnout lama), lalu turun pelan ke normal dalam 2,2 detik. Hanya mode ONARR.
 
 // Kalibrasi rasa kecepatan di jalan: 1 = skala asli, makin besar motor terasa makin cepat pada km/j yang sama (angka km/j di HUD tidak berubah)
@@ -1179,3 +1182,58 @@ void main(){vec2 q=gl_PointCoord*2.-1.;float r=length(q);
  stars.onBeforeRender=(r)=>{starM.uniforms.uT.value=performance.now()/1000;starM.uniforms.uPR.value=r.getPixelRatio();starM.uniforms.uTw.value=SKY.tw;domeM.uniforms.uMW.value=SKY.mw;domeM.uniforms.uCity.value=SKY.city};
  owG.add(dome);owG.add(stars);
 })()}catch(e){console.error('langit malam',e)}
+
+/* ===== BELOK LEBIH REALISTIS (halus, tidak ngesot, tidak terlalu tajam di kecepatan tinggi) =====
+   Sebelumnya (core.js stepOW) arah motor langsung berputar mengikuti setir tanpa batas: di 50 km/j putarannya setara >2 g (seperti ngesot / pivot) dan mulai/berhentinya mendadak.
+   Sekarang setiap frame setelah stepOW: (1) laju putar dibatasi gaya samping maks STR.amax (m/s², 9 = sekitar 0,9 g) dibagi kecepatan -> makin cepat makin lebar radius belok,
+   (2) laju putar dihaluskan (STR.smooth, makin kecil makin "berat"/lembut), (3) posisi dihitung ulang dari arah yang baru. Kecepatan rendah / parkir tetap lincah.
+   STR.on=false mengembalikan belok lama. */
+const STR={on:true,amax:9,smooth:9};
+try{(function(){
+ let ws=0;
+ const wrap=()=>{const o=window.stepOW;if(typeof o!=='function'||o.__rl)return;
+  const f=function(dt){
+   if(!STR.on||ow.foot||(typeof DR!=='undefined'&&DR&&DR.on)){ws=0;return o.apply(this,arguments)}
+   const h0=ow.h,r=o.apply(this,arguments);
+   if(ow.foot||!(dt>0)){ws=0;return r}
+   const h1=ow.h,w=(h1-h0)/dt,vw=(P.v+Math.abs(P.rv||0))*FEEL,lim=vw>.5?STR.amax/vw:1e9;
+   let wt=w;if(Math.abs(wt)>lim)wt=(wt<0?-1:1)*lim;
+   if(vw<.2)ws=wt;else ws+=(wt-ws)*Math.min(1,dt*STR.smooth);
+   const h2=h0+ws*dt,mv=P.v+(P.rv||0);ow.h=h2;
+   ow.x+=-(Math.sin(h2)-Math.sin(h1))*mv*dt*FEEL;ow.z+=-(Math.cos(h2)-Math.cos(h1))*mv*dt*FEEL;
+   return r};
+  f.__rl=1;window.stepOW=f};
+ wrap();setInterval(wrap,1000);
+})()}catch(e){console.error('belok realistis',e)}
+
+/* ===== STANDAR SAMPING OTOMATIS + MESIN MATI SAAT TURUN DARI MOTOR =====
+   Turun dari motor (jalan kaki): standar samping kiri turun otomatis, motor miring ke kiri bertumpu di standar, suara mesin mati pelan-pelan dan RPM jatuh ke 0.
+   Naik lagi: standar naik, motor tegak, mesin hidup lagi otomatis (RPM naik ke idle & suara idle muncul pelan).
+   KS.on=false untuk mematikan, KS.tilt = kemiringan di standar (rad, .2 = sekitar 11 derajat). */
+const KS={on:true,tilt:.2,k:0,r:null};
+try{(function(){
+ let stand=null;
+ const mkStand=()=>{const A=[-.07,.30,.12],F=[-.30,.065,.12],dx=F[0]-A[0],dy=F[1]-A[1],len=Math.hypot(dx,dy),
+   mt=new THREE.MeshStandardMaterial({color:0x2a2d33,roughness:.55,metalness:.6}),g=new THREE.Group(),
+   leg=new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,len,8),mt),pad=new THREE.Mesh(new THREE.BoxGeometry(.07,.012,.05),mt);
+  leg.position.set(dx/2,dy/2,0);leg.rotation.z=Math.atan2(-dx/len,dy/len);pad.position.set(dx,dy-.004,0);
+  g.add(leg,pad);g.position.set(A[0],A[1],A[2]);g.visible=false;return g};
+ const frameKS=dt=>{
+  const foot=KS.on&&st==='ow'&&!!ow.foot;
+  KS.k+=((foot?1:0)-KS.k)*Math.min(1,dt*4);if(!foot&&KS.k<.003)KS.k=0;
+  if(!P||!P.obj)return;
+  if(!stand)stand=mkStand();
+  if(stand.parent!==P.obj){if(stand.parent)stand.parent.remove(stand);P.obj.add(stand)}
+  const e=KS.k*KS.k*(3-2*KS.k);
+  stand.visible=KS.k>.02&&st==='ow';stand.scale.setScalar(Math.max(.01,e));
+  if(KS.k>0)P.obj.rotation.z+=KS.tilt*e;
+  if(foot){KS.r=(KS.r==null?(P.rpm||0):KS.r)*Math.max(0,1-dt*4);P.rpm=KS.r}else KS.r=null};
+ const hook=(nm,mk)=>{const o=window[nm];if(typeof o!=='function'||o.__ks)return;const f=mk(o);f.__ks=1;window[nm]=f};
+ const inst=()=>{
+  hook('frameOW',o=>function(dt){const r=o.apply(this,arguments);try{frameKS(dt)}catch(e){console.error('standar',e)}return r});
+  hook('engineSound',o=>function(dt){const r=o.apply(this,arguments);
+   try{if(KS.on&&st==='ow'&&ow.foot&&typeof ENG!=='undefined'&&ENG.ready&&typeof AC!=='undefined'&&AC){const t=AC.currentTime,N=ENG.n||{};
+    ['idle','gas','burn','full','rev'].forEach(k=>{const g=N[k]&&N[k].g&&N[k].g.gain;if(g){g.cancelScheduledValues(t);g.setTargetAtTime(0,t,.08)}})}}catch(e){}
+   return r})};
+ inst();setInterval(inst,1000);
+})()}catch(e){console.error('standar otomatis',e)}
