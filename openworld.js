@@ -673,7 +673,10 @@ const rg=glowM(0xff2a2a),bk=std('#111',.6),pm=std('#3d3d42',.6,.5);
 }catch(e){console.error('Pulau & tiang layang',e)}});
 // tinggi lantai kawasan Green Pramuka (lantai paving/aspal/rumput sedikit di atas y=0) supaya roda tidak tenggelam
 let gpcGY=0,gpcPitch=0,gpcBY=0;
-const NSW={x0:14.85,x1:18.9,y:.02,segs:[[-75.4,-298.8],[-361.2,-534.7]]}; // trotoar GLB di pinggir kiri jalan utama; terputus di apron SPBU Shell (Z -310..-350)
+const NSW={x0:14.85,x1:18.9,y:.02,segs:[[-75.4,-298.8],[-361.2,-534.7]]};
+/* LANJUTAN TROTOAR KIRI (mulai ujung Z -534.7): lurus sedikit, lalu belok ke -X (kiri) sesuai garis merah di screenshot, lalu lurus sampai Z zEnd (ujung jalan layang tol).
+   A = geser samping total (meter, negatif = ke kiri/-X), a0..a1 = jarak dari Z -534.7 tempat belokan mulai & selesai. on=false untuk mematikan. */
+const NSWB={on:true,z0:-534.7,zEnd:-1170,A:-10.5,a0:4,a1:28}; // trotoar GLB di pinggir kiri jalan utama; terputus di apron SPBU Shell (Z -310..-350)
 
 
 /* ===== TINGGI ASPAL NYATA (anti ban/velg tembus aspal) =====
@@ -798,12 +801,18 @@ try{(function(){
   const stone=ms.find(o=>/stone/i.test((o.material&&o.material.name)||''))||ms[0],edge=ms.find(o=>o!==stone);
   const prep=o=>{const g=o.geometry.clone();g.applyMatrix4(o.matrixWorld);const m=o.material;if(m.map){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.emissiveIntensity=.4}m.side=THREE.DoubleSide;m.polygonOffset=true;m.polygonOffsetFactor=-2;m.polygonOffsetUnits=-8;m.needsUpdate=true;return [g,m]};
   const tiles=[];NSW.segs.forEach(q=>{const len=q[0]-q[1],n=Math.max(1,Math.round(len/2)),Lt=len/n;for(let i=0;i<n;i++)tiles.push([q[0]-i*Lt+Lt/2,Lt/2])});
+  const btiles=[];if(NSWB.on){const ss=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)},tot=NSWB.z0-NSWB.zEnd,B=NSWB;
+   [[0,B.a0-2,2],[B.a0-2,B.a1+2,1],[B.a1+2,tot,2]].forEach(([d0,d1,pt])=>{if(d1<=d0)return;const n=Math.max(1,Math.round((d1-d0)/pt)),Lt=(d1-d0)/n;
+    for(let i=0;i<n;i++){const dd=d0+i*Lt+Lt/2,t=(dd-B.a0)/(B.a1-B.a0),off=B.A*ss(t),slope=(t>0&&t<1)?B.A*6*t*(1-t)/(B.a1-B.a0):0;
+     btiles.push([B.z0-dd,off,-Math.atan(slope),Lt/2*Math.sqrt(1+slope*slope)*1.03])}})}
   const d=new THREE.Object3D();d.rotation.y=Math.PI/2;
-  const [g0,m0]=prep(stone),im0=new THREE.InstancedMesh(g0,m0,tiles.length*NR);let k=0;
+  const [g0,m0]=prep(stone),im0=new THREE.InstancedMesh(g0,m0,(tiles.length+btiles.length)*NR);let k=0;
   tiles.forEach(t=>{for(let r=0;r<NR;r++){d.position.set(R-EW-r*w+.26*sz,NSW.y,t[0]);d.scale.set(t[1],1,sz);d.updateMatrix();im0.setMatrixAt(k++,d.matrix)}});
+  btiles.forEach(t=>{const cs=Math.cos(t[2]),sn=Math.sin(t[2]);d.rotation.y=Math.PI/2+t[2];for(let r=0;r<NR;r++){const q=-EW-r*w+.26*sz;d.position.set(R+t[1]+q*cs,NSW.y,t[0]-q*sn);d.scale.set(t[3],1,sz);d.updateMatrix();im0.setMatrixAt(k++,d.matrix)}});d.rotation.y=Math.PI/2;
   im0.frustumCulled=false;owG.add(im0);
-  if(edge){const [g1,m1]=prep(edge),im1=new THREE.InstancedMesh(g1,m1,tiles.length);
+  if(edge){const [g1,m1]=prep(edge),im1=new THREE.InstancedMesh(g1,m1,tiles.length+btiles.length);
    tiles.forEach((t,i)=>{d.position.set(R+.142,NSW.y,t[0]);d.scale.set(t[1],1,1);d.updateMatrix();im1.setMatrixAt(i,d.matrix)});
+   btiles.forEach((t,i)=>{const cs=Math.cos(t[2]),sn=Math.sin(t[2]);d.rotation.y=Math.PI/2+t[2];d.position.set(R+t[1]+.142*cs,NSW.y,t[0]-.142*sn);d.scale.set(t[3],1,1);d.updateMatrix();im1.setMatrixAt(tiles.length+i,d.matrix)});d.rotation.y=Math.PI/2;
    im1.frustumCulled=false;owG.add(im1)}
  }).catch(e=>console.error('TROTOAR jalan utama',e));
 })()}catch(e){console.error('trotoar jalan utama',e)}
@@ -985,8 +994,8 @@ window.FENCE_RECTS=window.FENCE_RECTS||[];
    TRU.x = tengah trotoar (X), TRU.z0 = ujung awal, TRU.z1 = ujung akhir (ubah kalau mau lebih pendek/panjang), TRU.w = lebar, TRU.h = tinggi (model otomatis diskala ke tinggi ini).
    TRU.on=false untuk mematikan. Motor TIDAK bisa naik (jadi tembok, lihat truWall); karakter jalan kaki bisa naik (setinggi TRU.h).
    Model ditempel berulang tiap 15 m; kalau data base64 di bawah dihapus, game memuat file models/trotoar_baru.glb sebagai cadangan. */
-/* TRU.gaps = trotoar diputus di rentang Z [atas, bawah] (ditandai merah di screenshot): Z -679,2 s/d -692,4 -> motor/karakter bisa lewat & belok di situ. Tambah/ubah/kosongkan sesuai kebutuhan. */
-const TRU={on:true,x:49.2,z0:-102.9,z1:(window.GJ_Z0!=null?window.GJ_Z0:-530)-GJ.L,w:5.2,h:.5,y:0,gaps:[[-679.2,-692.4]]};window.TRU=TRU;
+/* TRU.gaps = trotoar diputus di rentang Z [atas, bawah] (ditandai merah di screenshot): Z -868,5 s/d -890,5 -> motor/karakter bisa lewat & belok di situ (potongan lama di Z -679,2 s/d -692,4 sudah disambung). Tambah/ubah/kosongkan sesuai kebutuhan. */
+const TRU={on:true,x:49.2,z0:-102.9,z1:(window.GJ_Z0!=null?window.GJ_Z0:-530)-GJ.L,w:5.2,h:.5,y:0,gaps:[[-868.5,-890.5]]};window.TRU=TRU;
 window.truH=function(x,z){if(!TRU.on||!ow.foot)return null;return(x>=TRU.x-TRU.w/2&&x<=TRU.x+TRU.w/2&&z<=TRU.z0&&z>=TRU.z1&&!TRU.gaps.some(g=>z<=g[0]&&z>=g[1]))?TRU.h:null};
 window.truWall=function(){if(!TRU.on||ow.foot)return;const o=ow,r=.42,x0=TRU.x-TRU.w/2,x1=TRU.x+TRU.w/2,fx=-Math.sin(ow.h),fz=-Math.cos(ow.h),segs=[];let hit=0,sa=TRU.z0;TRU.gaps.slice().sort((p,q)=>q[0]-p[0]).forEach(g=>{segs.push([sa,g[0]]);sa=g[1]});segs.push([sa,TRU.z1]);
  for(const[zA,zB]of segs)for(const dd of[.85,0,-.85]){const px=o.x+fx*dd,pz=o.z+fz*dd;
