@@ -135,7 +135,7 @@ const joy={x:0,y:0,id:null};
  ['touchstart','touchmove'].forEach(n=>el.addEventListener(n,e=>e.preventDefault(),{passive:false}));
  ['pointerup','pointercancel'].forEach(n=>el.addEventListener(n,e=>{if(joy.id===e.pointerId)joyReset()}))})();
 
-document.addEventListener('touchmove',e=>{if(!(e.target.closest&&e.target.closest('#ov,#vehPaint,#fuelPanel')))e.preventDefault()},{passive:false});
+document.addEventListener('touchmove',e=>{if(!(e.target.closest&&e.target.closest('#ov,#vehPaint,#fuelPanel,#cinGal')))e.preventDefault()},{passive:false});
 
 // ---- efek suara UI ----
 let SFX=null;
@@ -219,7 +219,7 @@ const DR={on:false,x:0,y:0,z:0,yaw:0,pitch:0,vx:0,vy:0,vz:0,f:0,b:0,prev:0,sp:14
  const KM={KeyW:'f',ArrowUp:'f',KeyS:'b',ArrowDown:'b',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r',Space:'u',ShiftLeft:'d',ShiftRight:'d',KeyQ:'d'};
  addEventListener('keydown',e=>{
   if(e.code==='KeyG'&&!e.repeat&&st==='ow'){e.preventDefault();e.stopImmediatePropagation();DR.on?droneOff():droneOn();return}
-  if(!DR.on)return;
+  if(!DR.on||(window.CIN&&CIN.ctl==='ride'))return;
   if(e.code==='Escape'){droneOff();return}
   const m=KM[e.code];
   if(m||e.code==='KeyE'||e.code==='KeyB'||e.code==='KeyV'||e.code==='KeyC'||e.code==='KeyN'){e.preventDefault();e.stopImmediatePropagation();if(m)DR.k[m]=1}},true);
