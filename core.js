@@ -4,7 +4,7 @@ var hqPR,__hqReady,fxReady,ULT,FUEL,FUEL_L,fuelWas,fuelSaveT,fuelPanelOn,fuelAmt
 /* ===== FUNGSI GLOBAL (dikumpulkan di sini) =====
    Di file asli semua kode ada dalam satu skrip, jadi deklarasi function otomatis "hoisted" (bisa dipanggil sebelum didefinisikan).
    Setelah dipecah jadi banyak file itu tidak berlaku lagi, jadi semua function level-atas ditaruh di awal core.js supaya tetap bisa dipanggil dari file mana pun. */
-function rs(){const w=gl.clientWidth,h=gl.clientHeight;if(!w||!h)return;renderer.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix();if(window.fxResize)fxResize(w,h)}
+function rs(){if(window.CIN&&CIN.rec){CIN.fit();return}const w=gl.clientWidth,h=gl.clientHeight;if(!w||!h)return;renderer.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix();if(window.fxResize)fxResize(w,h)}
 function gfxCeil(){const d=devicePixelRatio||1;return GFX.q==='rendah'?Math.min(d,.9):GFX.q==='normal'?Math.min(d,1.3):Math.min(d,1.5)}
 function gfxLow(){const lo=GFX.q==='rendah';try{cam.far=lo?900:7000;cam.updateProjectionMatrix();scene.fog.density=lo?.0075:.0055}catch(e){}}
 function gfxApply(){GFX.blur=OGXQ.blur>0;try{ASP.lt.value=(GFX.q==='tinggi'||OGXQ.road>=2)?0:1}catch(e){}gfxLow();const t=(GFX.user?gfxCeil()*(.4+.6*GFX.res/100):Math.min(devicePixelRatio||1,GFX.q==='tinggi'?1.75:1.15))*(GFX.q==='tinggi'?hqPR:1);renderer.setPixelRatio(t);try{qPR=t}catch(e){}rs();if(window.__hqReady)hqApply()}
@@ -617,6 +617,7 @@ function droneOff(){
  camSet(DR.prev,true);CB.t=0; // kembali mulus ke kamera biasa
  const b=$('drn');if(b)b.innerHTML=window.DRN_HTML||'🚁 DRONE'}
 function droneCam(dt){
+ if(window.CIN&&CIN.on&&CIN.play){CIN.camStep(dt);const c=Math.cos(DR.pitch),sn=Math.sin(DR.pitch),a=Math.sin(DR.yaw),b=Math.cos(DR.yaw);cam.fov=CIN.fov;cam.updateProjectionMatrix();cam.position.set(DR.x,DR.y,DR.z);cam.lookAt(DR.x-a*c,DR.y+sn,DR.z-b*c);if(CIN.roll)cam.rotateZ(CIN.roll);return}
  const cp=Math.cos(DR.pitch),sp=Math.sin(DR.pitch),sy=Math.sin(DR.yaw),cy=Math.cos(DR.yaw),k=DR.k;
  const jx=Math.abs(joy.x)>.1?joy.x:0,jy=Math.abs(joy.y)>.1?-joy.y:0;
  let mv=jy+(k.f?1:0)-(k.b?1:0),sx=jx+(k.r?1:0)-(k.l?1:0);const ml=Math.max(1,Math.hypot(mv,sx));mv/=ml;sx/=ml;
@@ -628,8 +629,8 @@ function droneCam(dt){
  if(dd>500){DR.x=T.x+dx*500/dd;DR.z=T.z+dz*500/dd}
  let g=0;try{g=+gpcH(DR.x,DR.z)||0}catch(e){}
  DR.y=Math.max(g+.8,Math.min(150,DR.y));
- cam.fov=72;cam.updateProjectionMatrix();
- cam.position.set(DR.x,DR.y,DR.z);cam.lookAt(DR.x-sy*cp,DR.y+sp,DR.z-cy*cp)}
+ cam.fov=(window.CIN&&CIN.on)?CIN.fov:72;cam.updateProjectionMatrix();
+ cam.position.set(DR.x,DR.y,DR.z);cam.lookAt(DR.x-sy*cp,DR.y+sp,DR.z-cy*cp);if(window.CIN&&CIN.on){CIN.camStep(dt);if(CIN.roll)cam.rotateZ(CIN.roll)}}
 function lkrIn(x,z,m){const L=LKR;m=m||0;return x<=L.x0+m&&x>=L.x0-L.len-m&&Math.abs(z-L.z)<=L.w/2+m}
 function lkrH(x,z){return lkrIn(x,z,0)?LKR.y:null}
 function mkBlock(bi,bj){const g=new THREE.Group();g.position.set(bi*80,0,bj*80);
@@ -785,7 +786,7 @@ function qAdapt(dt){if(!window.AUTO_GFX)return;qAcc+=dt;const hi=GFX.q==='tinggi
 function engHush(){try{if(typeof AC==='undefined'||!AC)return;const t=AC.currentTime;
  if(typeof ENG!=='undefined'&&ENG.ready){const N=ENG.n||{};['idle','gas','burn','full','rev'].forEach(k=>{if(N[k]&&N[k].g)N[k].g.gain.setTargetAtTime(0,t,.04)});ENG.gasPrev=ENG.burnPrev=0;try{if(ENG.dr)drodStop(99)}catch(e){}try{if(ENG.rv)revStop(99)}catch(e){}}
  if(typeof gn!=='undefined'&&gn&&gn.gain)gn.gain.setTargetAtTime(0,t,.04)}catch(e){}}
-function loop(n){if(document.hidden)return;const dt=Math.min(.05,Math.max(0,(n-last)/1000));last=n;if(st==='menu'){if(!window.__hush){window.__hush=1;engHush()}requestAnimationFrame(loop);return}window.__hush=0;qAdapt(dt);try{if(st==='ow'){stepOW(dt);frameOW(dt)}else{step(dt);frame(dt)}}catch(e){console.error(e)}if(!document.hidden)requestAnimationFrame(loop)}
+function loop(n){if(document.hidden)return;const REC=!!(window.CIN&&CIN.rec);if(REC&&CIN.busy()){requestAnimationFrame(loop);return}const dt=REC?1/60:Math.min(.05,Math.max(0,(n-last)/1000));last=n;if(st==='menu'){if(!window.__hush){window.__hush=1;engHush()}requestAnimationFrame(loop);return}window.__hush=0;qAdapt(dt);try{if(st==='ow'){stepOW(dt);frameOW(dt)}else{step(dt);frame(dt)}if(REC&&window.CIN)CIN.cap()}catch(e){console.error(e)}if(!document.hidden)requestAnimationFrame(loop)}
 function saveVol(){try{localStorage.setItem('vGame',SND);localStorage.setItem('vMus',MUS)}catch(e){}if(window.MG)MG.gain.value=SND}
 function showHome(){if(window.ONL)ONL.leave();const bt=$('boot');if(bt)bt.remove();const h=$('home');h.style.display='flex';ov.style.display='none';ov.style.background='';st='menu';
  $('homeBg').style.backgroundImage='url('+HOME_IMG+')'}
