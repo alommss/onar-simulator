@@ -77,13 +77,18 @@ const GAL={
 /* ---------- State ---------- */
 const $=id=>document.getElementById(id);
 const toast=t=>{try{camToast(t)}catch(e){}};
-const CIN=window.CIN={on:false,rec:false,play:null,roll:0,fov:72,kf:[],sel:-1,dur:3,_endAfter:false};
+const CIN=window.CIN={on:false,rec:false,play:null,roll:0,fov:72,kf:[],sel:-1,dur:3,_endAfter:false,ctl:'cam',rel:false,fromGame:false};
 let R=null; /* sesi rekam */
 
 /* ---------- CSS ---------- */
 const css=document.createElement('style');
 css.textContent=`
-#w.cin #hud,#w.cin #coord,#w.cin #tr,#w.cin #drn,#w.cin #camb{display:none!important}
+#w.cin #hud,#w.cin #coord,#w.cin #tr,#w.cin #drn{display:none!important}
+#w.cin:not(.cinRide) #camb{display:none!important}
+#cin.ride .cBar,#cin.ride .cSl,#cin.ride #cClr{display:none!important}
+#cin.ride #cShut{bottom:auto;top:calc(48px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px))}
+#cin .cB.on{background:#ffb020ee;color:#1a1204}
+#cinb{display:none}#w.ow #cinb{display:flex}
 #cin{position:fixed;inset:0;z-index:20;display:none;pointer-events:none;font-family:system-ui,sans-serif;color:#fff;-webkit-user-select:none;user-select:none}
 #cin.on{display:block}
 #cin button,#cin input,#cin label{pointer-events:auto;touch-action:manipulation}
@@ -116,8 +121,9 @@ css.textContent=`
 #cShut.rec i{width:28px;height:28px;border-radius:7px;animation:cPulse 1s infinite}
 @keyframes cPulse{50%{background:#ff6a6a}}
 #cShut.busy{opacity:.5}
-.cgBox{width:min(780px,100%);max-height:100%;overflow:auto;background:#10131f;border:1px solid #ffffff22;border-radius:16px;padding:14px;box-sizing:border-box;color:#fff;font-family:system-ui,sans-serif}
-.cgHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cgBox{width:min(780px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden;background:#10131f;border:1px solid #ffffff22;border-radius:16px;padding:14px;box-sizing:border-box;color:#fff;font-family:system-ui,sans-serif}
+.cgHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex:0 0 auto}
+#cgList{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
 .cgHead h2{margin:0;font-size:18px;letter-spacing:.06em}
 .cgGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
 .cgCard{background:#181d2e;border:1px solid #ffffff1c;border-radius:12px;overflow:hidden}
@@ -142,6 +148,7 @@ ui.innerHTML=`<div class="cTop">
  <button class="cB" id="cX" type="button">✕ KELUAR</button>
  <label class="cSl">ROLL<input id="cRoll" type="range" min="-180" max="180" step="1" value="0"><b id="cRollV">0°</b></label>
  <label class="cSl">FOV<input id="cFov" type="range" min="20" max="110" step="1" value="72"><b id="cFovV">72°</b></label>
+ <button class="cB" id="cMot" type="button">🏍 MOTOR: OFF</button>
  <span class="cSp"></span>
  <button class="cB" id="cPv" type="button">▶ PREVIEW</button>
  <button class="cB" id="cClr" type="button">🗑 BERSIHKAN</button>
@@ -152,6 +159,7 @@ ui.innerHTML=`<div class="cTop">
   <button class="cB cAdd" id="cAdd" type="button">＋ KEYFRAME</button>
   <button class="cB" id="cUpd" type="button">↻ UPDATE</button>
   <button class="cB" id="cDel" type="button">✕ HAPUS</button>
+  <button class="cB" id="cRel" type="button" title="Kamera ikut bergerak bersama motor">📌 IKUT MOTOR: OFF</button>
   <span class="cDur" title="Lama perjalanan menuju keyframe terpilih"><button id="cDm" type="button">−</button><b id="cDv">3.0 s</b><button id="cDp" type="button">＋</button></span>
  </div>
  <div id="cChips"></div>
@@ -162,18 +170,49 @@ document.body.appendChild(ui);
 /* ---------- Keyframe ---------- */
 const TAU=Math.PI*2,unw=(a,ref)=>a+TAU*Math.round((ref-a)/TAU);
 /* sudut dibuat menyambung dari keyframe sebelumnya supaya kamera tidak muter jauh lewat jalur terpanjang */
-const pose=(ref)=>{const p={x:DR.x,y:DR.y,z:DR.z,yaw:DR.yaw,pitch:DR.pitch,roll:CIN.roll,fov:CIN.fov};if(ref){p.yaw=unw(p.yaw,ref.yaw);p.roll=unw(p.roll,ref.roll)}return p};
+const bikeNow=()=>{const T=ow.foot?wk:ow;return{x:T.x,z:T.z,h:T.h,y:gpcGY}};
+const pose=(ref)=>{const p={x:DR.x,y:DR.y,z:DR.z,yaw:DR.yaw,pitch:DR.pitch,roll:CIN.roll,fov:CIN.fov,b:bikeNow()};if(ref){p.yaw=unw(p.yaw,ref.yaw);p.roll=unw(p.roll,ref.roll)}return p};
+function mkPath(rel){
+ if(!rel)return makePath(CIN.kf);
+ /* keyframe dihitung relatif terhadap posisi & arah motor saat keyframe dibuat; saat main, diterjemahkan ke posisi motor yang sedang jalan */
+ let prev=null;
+ const L=CIN.kf.map(k=>{const b=k.b,dx=k.x-b.x,dz=k.z-b.z,c=Math.cos(b.h),s=Math.sin(b.h);
+  const o=Object.assign({},k,{x:dx*c-dz*s,z:dx*s+dz*c,y:k.y-b.y,yaw:k.yaw-b.h});
+  if(prev)o.yaw=unw(o.yaw,prev.yaw);prev=o;return o});
+ return makePath(L)}
+function relToWorld(p){const b=bikeNow(),c=Math.cos(b.h),s=Math.sin(b.h);
+ return Object.assign({},p,{x:b.x+p.x*c+p.z*s,z:b.z-p.x*s+p.z*c,y:p.y+b.y,yaw:p.yaw+b.h})}
+const mkPlay=rec=>({t:0,path:mkPath(CIN.rel),rel:CIN.rel,rec});
+/* Mode kontrol: 'cam' = kamera drone bebas (motor diam); 'ride' = tombol motor aktif, kamera mengikuti jalur keyframe (atau kamera game biasa kalau belum ada keyframe) */
+function droneRide(){
+ if(DR.on)return;DR.prev=CAM.mode;if(CAM.mode===1)camSet(0,true);
+ const d=new THREE.Vector3();cam.getWorldDirection(d);
+ DR.x=cam.position.x;DR.y=Math.max(cam.position.y,2);DR.z=cam.position.z;
+ DR.yaw=Math.atan2(-d.x,-d.z);DR.pitch=Math.asin(Math.max(-1,Math.min(1,d.y)));
+ DR.vx=DR.vy=DR.vz=0;DR.f=DR.b=0;for(const q in DR.k)DR.k[q]=0;
+ drag=null;CB.t=1;DR.on=true}
+function syncCtl(){
+ if(!CIN.on)return;const w=$('w');
+ if(CIN.ctl==='cam'){ui.classList.remove('ride');w.classList.remove('cinRide');
+  if(st==='ow'&&!DR.on)droneOn();else if(DR.on)w.classList.add('drone')}
+ else{ui.classList.add('ride');w.classList.add('cinRide');
+  if(CIN.play){if(!DR.on)droneRide();w.classList.remove('drone')}
+  else if(DR.on)droneOff();
+  w.classList.remove('drone')}
+ $('cMot').textContent='🏍 MOTOR: '+(CIN.ctl==='ride'?'ON':'OFF');$('cMot').classList.toggle('on',CIN.ctl==='ride');
+ $('cRel').textContent='📌 IKUT MOTOR: '+(CIN.rel?'ON':'OFF');$('cRel').classList.toggle('on',CIN.rel)}
 function applyPose(p){DR.x=p.x;DR.y=p.y;DR.z=p.z;DR.yaw=p.yaw;DR.pitch=Math.max(-1.45,Math.min(1.45,p.pitch));DR.vx=DR.vy=DR.vz=0;CIN.roll=p.roll;CIN.fov=p.fov}
 function total(){let t=0;for(let i=1;i<CIN.kf.length;i++)t+=Math.max(.1,CIN.kf[i].d);return t}
 function render(){
  const ch=$('cChips');ch.innerHTML='';
- if(!CIN.kf.length){const s=document.createElement('span');s.className='cEmpty';s.textContent='Atur kamera, lalu tekan ＋ KEYFRAME. Tanpa keyframe = rekam kamera bebas.';ch.appendChild(s)}
+ if(!CIN.kf.length){const s=document.createElement('span');s.className='cEmpty';s.textContent='Atur kamera, lalu tekan ＋ KEYFRAME. Tanpa keyframe = rekam kamera bebas / kamera game.';ch.appendChild(s)}
  CIN.kf.forEach((k,i)=>{const b=document.createElement('button');b.type='button';b.className='kfc'+(i===CIN.sel?' s':'');b.textContent=i+1;
   b.onclick=()=>{if(R||CIN.play)return;CIN.sel=i;applyPose(CIN.kf[i]);render()};ch.appendChild(b)});
  const k=CIN.kf[CIN.sel];$('cDv').textContent=(k&&CIN.sel>0?k.d:CIN.dur).toFixed(1)+' s';
  $('cPv').textContent=CIN.play&&!CIN.play.rec?'■ STOP':'▶ PREVIEW';
  const e=!!(R||CIN.play);
- ['cAdd','cUpd','cDel','cClr','cDm','cDp'].forEach(i=>{$(i).disabled=e&&i!=='cPv'});
+
+ ['cAdd','cUpd','cDel','cClr','cDm','cDp','cMot','cRel'].forEach(i=>{$(i).disabled=e&&i!=='cPv'});
  $('cShut').classList.toggle('rec',CIN.rec);
  if(CIN.kf.length>=2){$('cPv').title='Total '+total().toFixed(1)+' detik'}}
 function syncSl(){const r=Math.round(CIN.roll*180/Math.PI);if(+$('cRoll').value!==r)$('cRoll').value=r;$('cRollV').textContent=r+'°';
@@ -188,9 +227,11 @@ const stepDur=dd=>{const k=CIN.kf[CIN.sel];if(k&&CIN.sel>0){k.d=Math.max(.5,Math
 $('cDm').onclick=()=>stepDur(-.5);$('cDp').onclick=()=>stepDur(.5);
 $('cPv').onclick=()=>{
  if(R)return;
- if(CIN.play){CIN.play=null;render();return}
+ if(CIN.play){CIN.play=null;syncCtl();render();return}
  if(CIN.kf.length<2)return toast('Butuh minimal 2 keyframe untuk preview');
- CIN.play={t:0,path:makePath(CIN.kf),rec:false};render()};
+ CIN.play=mkPlay(false);syncCtl();render()};
+$('cMot').onclick=()=>{if(R||CIN.play)return;CIN.ctl=CIN.ctl==='ride'?'cam':'ride';syncCtl();render();toast(CIN.ctl==='ride'?'MOTOR ON · kendalikan motor, tombol rekam di kanan atas':'MOTOR OFF · kamera drone bebas')};
+$('cRel').onclick=()=>{if(R||CIN.play)return;CIN.rel=!CIN.rel;syncCtl();toast(CIN.rel?'Kamera akan IKUT motor (posisi relatif ke motor)':'Kamera diam di posisi dunia')};
 $('cX').onclick=()=>CIN.exit();
 $('cShut').onclick=()=>{if(R&&R.stopping)return;if(R)CIN.stop();else CIN.start()};
 
@@ -206,8 +247,8 @@ gl.addEventListener('pointermove',e=>{const p=tp.get(e.pointerId);if(!p)return;p
 /* droneCam() memanggil ini tiap frame: saat preview/rekam jalur, kamera mengikuti spline. */
 CIN.camStep=function(dt){
  const p=CIN.play;if(!p){syncSl();return}
- p.t+=dt;const done=p.t>=p.path.total;applyPose(p.path.at(Math.min(p.t,p.path.total)));syncSl();
- if(done){CIN.play=null;if(p.rec)CIN._endAfter=true;else toast('Preview selesai');render()}};
+ p.t+=dt;const done=p.t>=p.path.total;let q=p.path.at(Math.min(p.t,p.path.total));if(p.rel)q=relToWorld(q);applyPose(q);syncSl();
+ if(done){CIN.play=null;if(p.rec)CIN._endAfter=true;else toast('Preview selesai');syncCtl();render()}};
 CIN.busy=()=>!!(R&&R.enc&&R.enc.encodeQueueSize>6);
 CIN.fit=function(){renderer.setPixelRatio(1);renderer.setSize(VW,VH,false);cam.aspect=VW/VH;cam.updateProjectionMatrix();if(window.fxResize)fxResize(VW,VH)};
 /* dipanggil sesudah satu frame selesai digambar saat merekam */
@@ -232,7 +273,6 @@ async function pickCodec(){
  return null}
 CIN.start=async function(){
  if(R||!CIN.on)return;
- if(!DR.on)droneOn();
  const pc=await pickCodec();
  if(!pc){toast('HP/WebView ini tidak mendukung rekam 60 FPS asli (WebCodecs)');return}
  const cv=renderer.domElement;
@@ -242,11 +282,11 @@ CIN.start=async function(){
   R.enc.configure(pc.cfg)}
  catch(e){R=null;toast('Encoder gagal: '+((e&&e.message)||e));return}
  cv.style.width='100%';cv.style.height='100%';cv.style.objectFit='contain';cv.style.background='#000';
- CIN.play=CIN.kf.length>=2?{t:0,path:makePath(CIN.kf),rec:true}:null;
+ CIN.play=CIN.kf.length>=2?mkPlay(true):null;
  CIN._endAfter=false;
- CIN.rec=true;CIN.fit();
+ CIN.rec=true;syncCtl();CIN.fit();
  $('cRec').classList.add('on');$('cRecT').textContent='REC 00:00 · 1280×720 · 60 FPS';
- toast(CIN.play?'Merekam jalur keyframe…':'Merekam kamera bebas…');
+ toast(CIN.play?'Merekam jalur keyframe…':(CIN.ctl==='ride'?'Merekam sambil jalan…':'Merekam kamera bebas…'));
  render()};
 CIN.stop=async function(){
  if(!R||R.stopping)return;
@@ -263,21 +303,23 @@ CIN.stop=async function(){
    toast('Video tersimpan di GALERI ('+fmt(S.n/FPS)+', 60 FPS)')}
   else if(!S.dead)toast('Rekaman terlalu pendek, tidak disimpan')}
  catch(e){console.error(e);toast('Gagal menyimpan video: '+((e&&e.message)||e))}
- R=null;$('cRec').classList.remove('on');$('cShut').classList.remove('busy');render()};
+ R=null;$('cRec').classList.remove('on');$('cShut').classList.remove('busy');syncCtl();render()};
 
 /* ---------- Masuk / keluar mode ---------- */
-CIN.enter=function(){
- CIN.on=true;CIN.kf=[];CIN.sel=-1;CIN.roll=0;CIN.fov=72;CIN.play=null;
- $('w').classList.add('cin');ui.classList.add('on');render();syncSl();
- setTimeout(()=>{if(CIN.on&&st==='ow'&&!DR.on)droneOn();toast('CINEMATIC · atur kamera → ＋ KEYFRAME → tombol merah untuk rekam')},500)};
+CIN.enter=function(o){
+ if(CIN.on)return;
+ CIN.on=true;CIN.fromGame=!!(o&&o.fromGame);CIN.ctl='cam';CIN.kf=[];CIN.sel=-1;CIN.roll=0;CIN.fov=72;CIN.play=null;
+ $('w').classList.add('cin');ui.classList.add('on');render();syncSl();syncCtl();
+ setTimeout(()=>{if(!CIN.on)return;syncCtl();toast('CINEMATIC · atur kamera → ＋ KEYFRAME → tombol merah untuk rekam · 🏍 MOTOR = rekam sambil jalan')},CIN.fromGame?50:500)};
 CIN.exit=async function(){
  if(!CIN.on)return;
  if(R&&!R.stopping)await CIN.stop();
  else if(R){let n=0;while(R&&n++<200)await new Promise(r=>setTimeout(r,100))}
- CIN.on=false;CIN.play=null;ui.classList.remove('on');$('w').classList.remove('cin');
- goHome()};
+ CIN.on=false;CIN.play=null;ui.classList.remove('on','ride');$('w').classList.remove('cin','cinRide');
+ if(CIN.fromGame){CIN.fromGame=false;if(DR.on)droneOff();toast('Kembali ke game')}
+ else goHome()};
 /* Esc / tombol G bisa mematikan drone: nyalakan lagi selama mode cinematic aktif */
-setInterval(()=>{if(CIN.on&&st==='ow'&&!DR.on)droneOn()},400);
+setInterval(()=>{if(CIN.on&&CIN.ctl==='cam'&&st==='ow'&&!DR.on)droneOn()},400);
 
 /* ---------- Galeri ---------- */
 const gal=document.createElement('div');gal.id='cinGal';gal.className='mdl';
@@ -313,4 +355,8 @@ $('cgX').onclick=()=>{closePl();gal.style.display='none'};
 /* ---------- Tombol di home ---------- */
 tapHome('hCN',()=>{audio();reset();setMode('ow');cyaw=0;cpitch=.25;startOW();st='ow';hideHome();CIN.enter()});
 tapHome('hGL',()=>showGal());
+/* tombol CINEMATIC di dalam game open world (samping tombol drone) */
+(function(){const tr=$('tr');if(!tr)return;const b=document.createElement('button');b.type='button';b.className='tb';b.id='cinb';b.setAttribute('aria-label','Cinematic');b.textContent='🎬 CINEMATIC';
+ b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(st==='ow'&&!CIN.on)CIN.enter({fromGame:true})});
+ tr.insertBefore(b,tr.firstChild)})();
 })();
