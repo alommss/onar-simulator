@@ -332,8 +332,20 @@ let plUrl=null;
 function closePl(){const v=$('cpV');try{v.pause()}catch(e){}v.removeAttribute('src');v.load();if(plUrl){URL.revokeObjectURL(plUrl);plUrl=null}pl.style.display='none'}
 $('cpX').onclick=closePl;
 async function play(m){const b=await GAL.blob(m.id);if(!b)return toast('File video tidak ditemukan');plUrl=URL.createObjectURL(b);const v=$('cpV');v.src=plUrl;pl.style.display='flex';try{await v.play()}catch(e){}}
+/* Di APK: tulis langsung ke galeri HP (Movies/OnarSimulator) lewat jembatan native OnarNative. */
+function readB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=()=>rej(r.error);r.readAsDataURL(blob)})}
+async function saveNative(b,fname){
+ const N=window.OnarNative;if(!N||typeof N.begin!=='function')return null;
+ try{
+  if(!N.begin(fname)){toast('Izin penyimpanan dibutuhkan. Izinkan, lalu tekan SIMPAN lagi');return false}
+  const STEP=3*512*1024; /* kelipatan 3 byte supaya base64 tiap potongan bersih */
+  for(let i=0;i<b.size;i+=STEP){if(!N.chunk(await readB64(b.slice(i,i+STEP)))){toast('Gagal menulis ke galeri');return false}}
+  if(!N.end()){toast('Gagal menyelesaikan file di galeri');return false}
+  toast('Tersimpan di galeri HP · folder Movies/OnarSimulator');return true}
+ catch(e){console.error(e);toast('Gagal menyimpan: '+((e&&e.message)||e));return false}}
 async function saveOut(m){
- const b=await GAL.blob(m.id);if(!b)return;const f=new File([b],m.name.replace(/[^\w.\- ]+/g,'_')+'.webm',{type:'video/webm'});
+ const b=await GAL.blob(m.id);if(!b)return;const fn=m.name.replace(/[^\w.\- ]+/g,'_')+'.webm',f=new File([b],fn,{type:'video/webm'});
+ const nat=await saveNative(b,fn);if(nat!==null)return;
  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:m.name});return}catch(e){if(e&&e.name==='AbortError')return}}
  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},5000);toast('Mengunduh '+f.name)}
 async function showGal(){
