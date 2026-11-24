@@ -111,6 +111,8 @@ jobs:
                   public boolean begin(String name) {
                       try {
                           close();
+                          uri = null;
+                          file = null;
                           if (Build.VERSION.SDK_INT >= 29) {
                               ContentValues v = new ContentValues();
                               v.put(MediaStore.Video.Media.DISPLAY_NAME, name);
