@@ -306,7 +306,7 @@ function fxBikeScr(){ // posisi motor di layar (pusat blur), dibatasi supaya tid
  try{if(!fxHave)return;_fa.copy(fxRef);_fa.y+=.8;_fa.applyMatrix4(cam.matrixWorldInverse);if(_fa.z>-.3)return;_fa.applyMatrix4(cam.projectionMatrix);
   fxBX=Math.max(FW*.3,Math.min(FW*.7,(_fa.x*.5+.5)*FW));fxBY=Math.max(FH*.3,Math.min(FH*.65,(.5-_fa.y*.5)*FH))}catch(e){}}
 function fxLines(dt){
- fc.clearRect(0,0,FW,FH);fxTrack(dt);if(fxS<.04||santay())return;fxBikeScr();
+ if(fxLines.dirty||fxLines.w!==FW||fxLines.h!==FH){fc.clearRect(0,0,FW,FH);fxLines.dirty=false;fxLines.w=FW;fxLines.h=FH}fxTrack(dt);if(fxS<.04||santay())return;fxLines.dirty=true;fxBikeScr();
  // motion blur ringan: salinan frame diperbesar sedikit dari titik tengah, ditumpuk transparan
  try{const src=renderer.domElement;fc.save();fc.translate(fxBX,fxBY);
   (GFX.blur?OGXQ_MB[OGXQ.blur]:[]).forEach(q=>{const k=1+(q[0]-1)*fxS;fc.globalAlpha=q[1]*fxS;fc.save();fc.scale(k,k);fc.drawImage(src,-fxBX,-fxBY,FW,FH);fc.restore()});
@@ -637,8 +637,9 @@ function mkBlock(bi,bj){const g=new THREE.Group();g.position.set(bi*80,0,bj*80);
  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{const px=sx*17,pz=sz*17;if((bi*80+px>0&&bi*80+px<110&&bj*80+pz<-515&&bj*80+pz>-1250)||(LKR.clear&&lkrIn(bi*80+px,bj*80+pz,1.5))||(bi*80+px<10&&bj*80+pz<LFT_Z0)||(bi*80+px>-37&&bi*80+px<21&&bj*80+pz>-362&&bj*80+pz<-298))return;add(new THREE.Mesh(pG,pM),px,3.6,pz,g);add(new THREE.Mesh(lG,lM),px,7.2,pz,g);const sp=new THREE.Sprite(sprM);sp.scale.set(6,6,1);sp.position.set(px,7.2,pz);g.add(sp)});
  owG.add(g);return g}
 function updBlocks(){const T=DR.on?DR:(ow.foot?wk:ow),ci=Math.round(T.x/80),cj=Math.round(T.z/80);
+ if(updBlocks.ci===ci&&updBlocks.cj===cj&&updBlocks.n===blocks.size)return;updBlocks.ci=ci;updBlocks.cj=cj;
  for(let i=ci-2;i<=ci+2;i++)for(let j=cj-2;j<=cj+2;j++){const k=i+','+j;if(!blocks.has(k))blocks.set(k,mkBlock(i,j))}
- blocks.forEach((g,k)=>{const [i,j]=k.split(',').map(Number);if(Math.abs(i-ci)>3||Math.abs(j-cj)>3){owG.remove(g);blocks.delete(k)}})}
+ blocks.forEach((g,k)=>{const [i,j]=k.split(',').map(Number);if(Math.abs(i-ci)>3||Math.abs(j-cj)>3){owG.remove(g);blocks.delete(k)}});updBlocks.n=blocks.size}
 function setMode(m){window.__tm=-1;mode=m;const o=m==='ow';dragObjs.forEach(x=>x.visible=!o);owG.visible=o;O.obj.visible=!o;P.obj.rotation.order=o?'YXZ':'XYZ';P.obj.rotation.set(0,0,0);
  $('nos').style.display=o?'none':'';['bl','br','brk','bn','rv','bk','eye','mt'].forEach(i=>{const el=$(i);if(el)el.style.display=o?'flex':'none'});$('pb').style.display=o?'none':'';$('run').style.display='none';$('w').classList.toggle('ow',o);$('wh').style.display='flex';setWH(0);$('w').classList.remove('foot');$('joy').style.display='none';$('gas').style.display='';lastFoot=null;joyReset()}
 function updCoord(o){const c=document.getElementById('coord');if(!c)return;
@@ -776,7 +777,7 @@ function frameOW(dt){
   cam.position.set(T.x+Math.sin(ya)*cp*D,by+Math.sin(cpitch)*D,T.z+Math.cos(ya)*cp*D);cam.lookAt(T.x-Math.sin(lh),by+.1,T.z-Math.cos(lh))}
  if(DR.on)droneCam(dt);else camWallClamp(T);
  pl.position.set(T.x,4,T.z);
- $('mt').setAttribute('aria-label',ow.foot?'Naik motor':'Turun motor');$('mt').style.opacity=(ow.foot?Math.hypot(wk.x-ow.x,wk.z-ow.z)<=3.5:P.v<=3)?1:.4;if(ow.foot!==lastFoot){lastFoot=ow.foot;const f=ow.foot;if(f){setWH(0);setSUP(0)}$('w').classList.toggle('foot',f);['bl','br','brk','bn','rv','gas','wh'].forEach(i=>$(i).style.display=f?'none':'flex');$('joy').style.display=f?'block':'none';if(!f)joyReset()}
+ {const mt=$('mt'),al=ow.foot?'Naik motor':'Turun motor',op=(ow.foot?Math.hypot(wk.x-ow.x,wk.z-ow.z)<=3.5:P.v<=3)?1:.4;if(mt.__al!==al){mt.__al=al;mt.setAttribute('aria-label',al)}if(mt.__op!==op){mt.__op=op;mt.style.opacity=op}}if(ow.foot!==lastFoot){lastFoot=ow.foot;const f=ow.foot;if(f){setWH(0);setSUP(0)}$('w').classList.toggle('foot',f);['bl','br','brk','bn','rv','gas','wh'].forEach(i=>$(i).style.display=f?'none':'flex');$('joy').style.display=f?'block':'none';if(!f)joyReset()}
  {const sp=$('spd');if(sp.__t!==''){sp.__t='';sp.textContent=''}}{const tv=Math.floor(ow.odo);if(tv!==window.__tm){window.__tm=tv;$('tm').textContent=tv.toLocaleString('id-ID')+' m'}}updCoord(DR.on?{x:DR.x,z:DR.z,h:DR.yaw}:(ow.foot?wk:ow));$('rc').textContent='';$('msg').textContent='';
  rpiSet();
  if(osc){gn.gain.value=0}
@@ -786,7 +787,13 @@ function qAdapt(dt){if(!window.AUTO_GFX)return;qAcc+=dt;const hi=GFX.q==='tinggi
 function engHush(){try{if(typeof AC==='undefined'||!AC)return;const t=AC.currentTime;
  if(typeof ENG!=='undefined'&&ENG.ready){const N=ENG.n||{};['idle','gas','burn','full','rev'].forEach(k=>{if(N[k]&&N[k].g)N[k].g.gain.setTargetAtTime(0,t,.04)});ENG.gasPrev=ENG.burnPrev=0;try{if(ENG.dr)drodStop(99)}catch(e){}try{if(ENG.rv)revStop(99)}catch(e){}}
  if(typeof gn!=='undefined'&&gn&&gn.gain)gn.gain.setTargetAtTime(0,t,.04)}catch(e){}}
-function loop(n){if(document.hidden)return;const REC=!!(window.CIN&&CIN.rec);if(REC&&CIN.busy()){requestAnimationFrame(loop);return}const dt=REC?1/60:Math.min(.05,Math.max(0,(n-last)/1000));last=n;if(st==='menu'){if(!window.__hush){window.__hush=1;engHush()}requestAnimationFrame(loop);return}window.__hush=0;qAdapt(dt);try{if(st==='ow'){stepOW(dt);frameOW(dt)}else{step(dt);frame(dt)}if(REC&&window.CIN)CIN.cap()}catch(e){console.error(e)}if(!document.hidden)requestAnimationFrame(loop)}
+/* PEMBATAS 60 FPS: di layar 120Hz game dulu jalan dua kali per 1/60 detik (beban dobel, ritme tidak rata). Layar >=100Hz dideteksi dari jarak antar frame lalu game dikunci ke 60 FPS rata. Layar 60Hz/90Hz tidak disentuh. */
+const LIM={on:false,t:0,p:0,h:4,a:[]};
+function limSkip(n){
+ if(!LIM.on){if(LIM.p&&LIM.a.length<48){LIM.a.push(n-LIM.p);if(LIM.a.length===48){const q=LIM.a.slice().sort((x,y)=>x-y);if(q[24]<10){LIM.on=true;LIM.h=q[24]/2;LIM.t=n}}}LIM.p=n;return false}
+ const tg=LIM.t+16.667; /* jadwal tetap tiap 1/60 detik, boleh maju setengah interval layar supaya tidak meleset ke 45/48 FPS di layar 144Hz */
+ if(n<tg-LIM.h)return true;LIM.t=(n-tg>50)?n:tg;return false}
+function loop(n){if(document.hidden)return;const REC=!!(window.CIN&&CIN.rec);if(!REC&&limSkip(n)){requestAnimationFrame(loop);return}if(REC&&CIN.busy()){requestAnimationFrame(loop);return}const dt=REC?1/60:Math.min(.05,Math.max(0,(n-last)/1000));last=n;if(st==='menu'){if(!window.__hush){window.__hush=1;engHush()}requestAnimationFrame(loop);return}window.__hush=0;qAdapt(dt);try{if(st==='ow'){stepOW(dt);frameOW(dt)}else{step(dt);frame(dt)}if(REC&&window.CIN)CIN.cap()}catch(e){console.error(e)}if(!document.hidden)requestAnimationFrame(loop)}
 function saveVol(){try{localStorage.setItem('vGame',SND);localStorage.setItem('vMus',MUS)}catch(e){}if(window.MG)MG.gain.value=SND}
 function showHome(){if(window.ONL)ONL.leave();const bt=$('boot');if(bt)bt.remove();const h=$('home');h.style.display='flex';ov.style.display='none';ov.style.background='';st='menu';
  $('homeBg').style.backgroundImage='url('+HOME_IMG+')'}
