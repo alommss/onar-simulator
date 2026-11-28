@@ -1,7 +1,7 @@
 /* ===== BMW M3 2007 + CEWE (ANIMASI IDLE) + CINEMATIC BLUR + REDAM TERANG GREEN PRAMUKA =====
    Model: models/bmw_m3_2007.glb dan models/tobrut_animated.glb (byte asli, tidak diubah).
-   BMW.x, BMW.z   = titik tengah mobil di dunia (koordinat HUD: X 7.1  Z 43.0)
-   BMW.hdeg       = arah hadap depan mobil (derajat, sama seperti H di HUD). 183 = depan mobil menghadap ke arah pemain yang datang dari H 3.
+   BMW.x, BMW.z   = titik tengah mobil di dunia (koordinat HUD: X 16.0  Z 52.1)
+   BMW.hdeg       = arah hadap depan mobil (derajat, sama seperti H di HUD). 358 = depan mobil menghadap lurus ke depan searah H 358 di HUD.
    BMW.y          = tinggi alas (0 = aspal/lantai dasar).  BMW.on=false untuk menyembunyikan.
    CWE.beside     = jarak cewe ke KIRI mobil (meter dari sumbu mobil), CWE.along = geser maju (+) / mundur (-) searah mobil.
    CWE.tinggi     = tinggi cewe (meter).  CWE.hdeg = arah hadap cewe (null = sama dengan mobil).
@@ -163,7 +163,7 @@ function init(){
 'use strict';
 if(typeof owG==='undefined'||typeof chB64ToBuf!=='function'||typeof THREE==='undefined')return;
 const D2R=Math.PI/180;
-const BMW=window.BMW={on:true,x:7.1,z:43.0,y:0,hdeg:183,hl:2.3,hw:.95,far:260};
+const BMW=window.BMW={on:true,x:16.0,z:52.1,y:0,hdeg:358,hl:2.3,hw:.95,far:260};
 const CWE=window.CWE={on:true,beside:1.75,along:.3,y:0,tinggi:1.68,hdeg:null,far:90,r:.32,lift:.05};
 const ch=BMW.hdeg*D2R,fwd=[-Math.sin(ch),-Math.cos(ch)],left=[-Math.cos(ch),Math.sin(ch)]; /* depan & kiri mobil di dunia */
 BMW.h=ch+Math.PI; /* model menghadap +z, jadi + PI supaya depan mobil searah H (sama seperti mobil polisi) */
@@ -212,7 +212,13 @@ if(CWE.on)load('tobrut_animated.glb').then(gl=>{
  if(head!=null&&sole0!=null&&head>sole0){s=CWE.tinggi/(head-sole0);off=-soleMin+CWE.lift/s}
  else{const bb=new THREE.Box3().setFromObject(m);s=CWE.tinggi/Math.max(.5,bb.max.y-bb.min.y);off=-bb.min.y+CWE.lift/s}
  m.traverse(o=>{if(!o.isMesh)return;o.userData.noCast=1;o.castShadow=false;
-  [].concat(o.material).forEach(q=>{if(q&&q.map){q.emissiveMap=q.map;q.emissive=new THREE.Color(.24,.24,.24)}})}); /* malam: terangkan tekstur kulit/baju tanpa mengubah warna aslinya */
+  [].concat(o.material).forEach(q=>{if(q&&q.map){q.emissiveMap=q.map;q.emissive=new THREE.Color(.24,.24,.24)}
+   /* garis mirip urat saat cewe jauh: atlas teksturnya punya celah gelap sempit antar potongan, mipmap mencampurnya ke kulit.
+      Matikan mipmap (LinearFilter) + anisotropy supaya warna celah tidak merembes. Dekat tetap tajam seperti biasa. */
+   ['map','roughnessMap','metalnessMap'].forEach(k=>{const t=q&&q[k];if(!t)return;
+    t.generateMipmaps=false;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter;
+    try{t.anisotropy=Math.min(8,(typeof renderer!=='undefined'&&renderer.capabilities.getMaxAnisotropy())||8)}catch(e){}
+    t.needsUpdate=true})})}); /* malam: terangkan tekstur kulit/baju tanpa mengubah warna aslinya */
  m.position.y=off;
  const g=new THREE.Group();g.add(m);g.scale.setScalar(s);g.position.set(CWE.x,CWE.y,CWE.z);g.rotation.y=CWE.h;g.visible=false;owG.add(g);CWE.obj=g;
  if(mx)CWE.mx=mx;

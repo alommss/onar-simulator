@@ -1370,7 +1370,9 @@ function loadVario(){window.__lqP=loadVarioLQ();
 function gDbg(t){console.log('GLB '+t)}
 function gLoad(){if(GCHp)return GCHp;
  GCHp=chB64ToBuf(typeof CHAR_GLB_B64!=='undefined'?CHAR_GLB_B64:null,'karakter.glb').then(buf=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(buf,'',ok,no))).then(gl=>{
-  gl.scene.traverse(o=>{if(o.isMesh||o.isSkinnedMesh)o.frustumCulled=false});GCH=gl;gDbg('termuat');
+  gl.scene.traverse(o=>{if(o.isMesh||o.isSkinnedMesh)o.frustumCulled=false;
+   /* garis mirip urat saat karakter jauh: mipmap mencampur warna celah tekstur -> anisotropy dinaikkan supaya tekstur tidak terlalu diburamkan */
+   if(o.isMesh)[].concat(o.material).forEach(q=>{if(!q)return;['map','roughnessMap','metalnessMap'].forEach(k=>{const t=q[k];if(t){try{t.anisotropy=Math.max(t.anisotropy||1,Math.min(8,(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy())||8));t.needsUpdate=true}catch(e){}}})})});GCH=gl;gDbg('termuat');
   try{if(custom&&P&&P.sk)skin(P,P.sk[0],P.sk[1])}catch(e){console.error('GCH skin',e)}
   try{gAttachWalker()}catch(e){console.error('GCH walker',e)}
   return gl}).catch(e=>{console.error('GCH',e);gDbg('gagal muat: '+(e&&e.message||e))});
