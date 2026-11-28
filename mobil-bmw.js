@@ -212,7 +212,13 @@ if(CWE.on)load('tobrut_animated.glb').then(gl=>{
  if(head!=null&&sole0!=null&&head>sole0){s=CWE.tinggi/(head-sole0);off=-soleMin+CWE.lift/s}
  else{const bb=new THREE.Box3().setFromObject(m);s=CWE.tinggi/Math.max(.5,bb.max.y-bb.min.y);off=-bb.min.y+CWE.lift/s}
  m.traverse(o=>{if(!o.isMesh)return;o.userData.noCast=1;o.castShadow=false;
-  [].concat(o.material).forEach(q=>{if(q&&q.map){q.emissiveMap=q.map;q.emissive=new THREE.Color(.24,.24,.24)}})}); /* malam: terangkan tekstur kulit/baju tanpa mengubah warna aslinya */
+  [].concat(o.material).forEach(q=>{if(q&&q.map){q.emissiveMap=q.map;q.emissive=new THREE.Color(.24,.24,.24)}
+   /* garis mirip urat saat cewe jauh: atlas teksturnya punya celah gelap sempit antar potongan, mipmap mencampurnya ke kulit.
+      Matikan mipmap (LinearFilter) + anisotropy supaya warna celah tidak merembes. Dekat tetap tajam seperti biasa. */
+   ['map','roughnessMap','metalnessMap'].forEach(k=>{const t=q&&q[k];if(!t)return;
+    t.generateMipmaps=false;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter;
+    try{t.anisotropy=Math.min(8,(typeof renderer!=='undefined'&&renderer.capabilities.getMaxAnisotropy())||8)}catch(e){}
+    t.needsUpdate=true})})}); /* malam: terangkan tekstur kulit/baju tanpa mengubah warna aslinya */
  m.position.y=off;
  const g=new THREE.Group();g.add(m);g.scale.setScalar(s);g.position.set(CWE.x,CWE.y,CWE.z);g.rotation.y=CWE.h;g.visible=false;owG.add(g);CWE.obj=g;
  if(mx)CWE.mx=mx;
