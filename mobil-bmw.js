@@ -16,7 +16,7 @@
         (24 sampel, bobot memihak latar supaya tidak ada halo di tepi objek). Dipasang di dalam ultRender() sebelum bloom/grading.
       - Tombol "BLUR: ON/OFF" ada di bar atas mode cinematic. Kekuatan: CIN.blurPx (piksel @720p, default 16).
       - Ikut terekam di video 1280x720 60 FPS (peta kedalaman dibuat resolusi penuh saat merekam, setengah saat preview).
-      - Gagal/tidak didukung -> otomatis mati, game tetap jalan seperti biasa.
+      - Gagal/tidak didukung -> otomatis mati (toast menampilkan pesan error), game tetap jalan seperti biasa.
    2) GPC_DIM: meredupkan area Green Pramuka (kotak GPC_DIM.x0..x1 / z0..z1). pool = pengali cahaya genangan lampu jalan,
       facade = pengali terang jendela/fasad gedung. Kalau masih terlalu terang kecilkan angkanya, GPC_DIM.on=false untuk mematikan. */
 (function(){
@@ -60,7 +60,10 @@ function init(){
  const CIN=window.CIN;
  if(CIN.blur===undefined)CIN.blur=true;
  if(CIN.blurPx===undefined)CIN.blurPx=16;
- const R0=THREE.WebGLRenderer.prototype.render; /* render asli (tanpa patch hqFrame) untuk pass tambahan */
+ /* di three r128 render() adalah fungsi milik instance (bukan prototype) dan sudah dibungkus game (hqFrame).
+    Pass tambahan memakai render itu dengan HQ.on dimatikan sementara supaya hqFrame tidak dijalankan ulang. */
+ const RR=renderer.render;
+ const R0=function(s,c){const h=(typeof HQ!=='undefined'&&HQ)?HQ.on:null;if(h!==null)HQ.on=false;try{return RR.call(renderer,s,c)}finally{if(h!==null)HQ.on=h}};
  const D={ok:true,rt:null,out:null,mat:null,bm:null,cp:null,sc:null,q:null,oc:null,ign:[],ignT:0};
  const dir=new THREE.Vector3(),tv=new THREE.Vector3(),cc=new THREE.Color();
 
@@ -95,7 +98,7 @@ function init(){
   try{
    scene.background=null;scene.overrideMaterial=D.mat;renderer.shadowMap.autoUpdate=false;
    renderer.setClearColor(0xffffff,1);renderer.setRenderTarget(D.rt);renderer.clear(true,true,false);
-   R0.call(renderer,scene,cam)}
+   R0(scene,cam)}
   finally{
    for(let i=0;i<hid.length;i++)hid[i].visible=true;
    scene.background=bg;scene.overrideMaterial=ov;renderer.shadowMap.autoUpdate=au;renderer.setClearColor(c0,ca)}}
@@ -110,21 +113,21 @@ function init(){
   const u=D.bm.uniforms,W=src.width,H=src.height;
   u.tC.value=src.texture;u.tD.value=D.rt.texture;u.px.value.set(1/W,1/H);u.near.value=cam.near;u.far.value=cam.far;
   u.maxR.value=CIN.blurPx*H/720;u.focus.value=focusZ();u.kS.value=1;
-  D.q.material=D.bm;renderer.setRenderTarget(toScreen?null:D.out);R0.call(renderer,D.sc,D.oc)}
+  D.q.material=D.bm;renderer.setRenderTarget(toScreen?null:D.out);R0(D.sc,D.oc)}
 
- function fail(e){console.error('cinematic blur',e);D.ok=false;try{renderer.setRenderTarget(null)}catch(_){}}
+ function fail(e){console.error('cinematic blur',e);D.ok=false;try{renderer.setRenderTarget(null)}catch(_){}try{camToast('Blur gagal: '+((e&&e.message)||e))}catch(_){}}
 
  /* dipanggil tepat setelah scene digambar ke RT: blur latar, lalu tulis balik ke RT supaya bloom & grading ikut */
  function blurInPlace(){
   ensure(RT.width,RT.height,!!CIN.rec);depthPass();blurPass(RT,false);
-  D.q.material=D.cp;D.cp.uniforms.t.value=D.out.texture;renderer.setRenderTarget(RT);R0.call(renderer,D.sc,D.oc);D.q.material=D.bm}
+  D.q.material=D.cp;D.cp.uniforms.t.value=D.out.texture;renderer.setRenderTarget(RT);R0(D.sc,D.oc);D.q.material=D.bm}
 
  const active=()=>CIN.on&&CIN.blur&&D.ok&&typeof RT!=='undefined'&&!!RT&&fxReady;
  const orig=window.ultRender;
  window.ultRender=function(){
   if(!active())return orig.apply(this,arguments);
   if(!ultUse()){ /* grafik rendah: gambar ke RT, blur langsung ke layar */
-   try{renderer.setRenderTarget(RT);R0.call(renderer,scene,cam);ensure(RT.width,RT.height,!!CIN.rec);depthPass();blurPass(RT,true);return}
+   try{renderer.setRenderTarget(RT);renderer.render(scene,cam);ensure(RT.width,RT.height,!!CIN.rec);depthPass();blurPass(RT,true);return}
    catch(e){fail(e);return orig.apply(this,arguments)}}
   const rr=renderer.render;let first=true;
   renderer.render=function(s,c){const r=rr.call(this,s,c);
