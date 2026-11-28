@@ -5,13 +5,16 @@
    BMW.y          = tinggi alas (0 = aspal/lantai dasar).  BMW.on=false untuk menyembunyikan.
    CWE.beside     = jarak cewe ke KIRI mobil (meter dari sumbu mobil), CWE.along = geser maju (+) / mundur (-) searah mobil.
    CWE.tinggi     = tinggi cewe (meter).  CWE.hdeg = arah hadap cewe (null = sama dengan mobil).
+   CWE.lift       = angkat cewe dari tanah (meter) supaya telapak kaki tidak tenggelam. Naikkan kalau masih tenggelam, turunkan kalau melayang.
    Keduanya ada tabrakan (kotak/lingkaran) dan hanya digambar bila dekat (BMW.far / CWE.far meter) supaya FPS aman. */
+/* memuat cinematic-dof.js (blur latar belakang objek di mode CINEMATIC + redam terang area Green Pramuka) */
+(function(){try{if(document.getElementById('cinDofJs'))return;const s=document.createElement('script');s.id='cinDofJs';s.src='cinematic-dof.js';s.async=false;document.body.appendChild(s)}catch(e){console.error('cinematic-dof.js',e)}})();
 (function(){
 'use strict';
 if(typeof owG==='undefined'||typeof chB64ToBuf!=='function'||typeof THREE==='undefined')return;
 const D2R=Math.PI/180;
 const BMW=window.BMW={on:true,x:7.1,z:43.0,y:0,hdeg:183,hl:2.3,hw:.95,far:260};
-const CWE=window.CWE={on:true,beside:1.75,along:.3,y:0,tinggi:1.68,hdeg:null,far:90,r:.32};
+const CWE=window.CWE={on:true,beside:1.75,along:.3,y:0,tinggi:1.68,hdeg:null,far:90,r:.32,lift:.05};
 const ch=BMW.hdeg*D2R,fwd=[-Math.sin(ch),-Math.cos(ch)],left=[-Math.cos(ch),Math.sin(ch)]; /* depan & kiri mobil di dunia */
 BMW.h=ch+Math.PI; /* model menghadap +z, jadi + PI supaya depan mobil searah H (sama seperti mobil polisi) */
 CWE.x=BMW.x+left[0]*CWE.beside+fwd[0]*CWE.along;CWE.z=BMW.z+left[1]*CWE.beside+fwd[1]*CWE.along;
@@ -43,17 +46,26 @@ if(BMW.on)load('bmw_m3_2007.glb').then(gl=>{
 if(CWE.on)load('tobrut_animated.glb').then(gl=>{
  const m=gl.scene;m.updateMatrixWorld(true);
  const wy=n=>{const b=m.getObjectByName(n);return b?new THREE.Vector3().setFromMatrixPosition(b.matrixWorld).y:null};
+ const soleNow=()=>{m.updateMatrixWorld(true);const a=[wy('LeftToesEnd'),wy('RightToesEnd')].filter(v=>v!=null);return a.length?Math.min(...a):null};
  /* tinggi & telapak kaki diambil dari tulang (pose diam), bukan dari kotak mesh yang bisa meleset untuk model berkulit */
- const head=wy('HeadTop'),sole=Math.min(...[wy('LeftToesEnd'),wy('RightToesEnd')].filter(v=>v!=null));
+ const head=wy('HeadTop'),sole0=soleNow();
+ /* Animasi Idle menurunkan badan/kaki dibanding pose diam, jadi telapak diukur juga di beberapa frame Idle dan diambil yang PALING RENDAH.
+    Dulu hanya pose diam yang diukur, makanya kaki agak tenggelam ke tanah. */
+ let mx=null,soleMin=sole0;
+ if(gl.animations&&gl.animations.length){
+  const clip=THREE.AnimationClip.findByName(gl.animations,'Idle')||gl.animations[0];
+  mx=new THREE.AnimationMixer(m);const ac=mx.clipAction(clip);ac.play();
+  const N=12,dur=Math.max(.1,clip.duration);mx.update(0);
+  for(let i=0;i<=N;i++){mx.update(i?dur/N:0);const v=soleNow();if(v!=null)soleMin=soleMin==null?v:Math.min(soleMin,v)}
+  ac.reset().play();mx.update(0)}
  let s=1,off=0;
- if(head!=null&&isFinite(sole)&&head>sole){s=CWE.tinggi/(head-sole);off=-sole}
- else{const bb=new THREE.Box3().setFromObject(m);s=CWE.tinggi/Math.max(.5,bb.max.y-bb.min.y);off=-bb.min.y}
+ if(head!=null&&sole0!=null&&head>sole0){s=CWE.tinggi/(head-sole0);off=-soleMin+CWE.lift/s}
+ else{const bb=new THREE.Box3().setFromObject(m);s=CWE.tinggi/Math.max(.5,bb.max.y-bb.min.y);off=-bb.min.y+CWE.lift/s}
  m.traverse(o=>{if(!o.isMesh)return;o.userData.noCast=1;o.castShadow=false;
   [].concat(o.material).forEach(q=>{if(q&&q.map){q.emissiveMap=q.map;q.emissive=new THREE.Color(.24,.24,.24)}})}); /* malam: terangkan tekstur kulit/baju tanpa mengubah warna aslinya */
  m.position.y=off;
  const g=new THREE.Group();g.add(m);g.scale.setScalar(s);g.position.set(CWE.x,CWE.y,CWE.z);g.rotation.y=CWE.h;g.visible=false;owG.add(g);CWE.obj=g;
- if(gl.animations&&gl.animations.length){const mx=new THREE.AnimationMixer(m);
-  mx.clipAction(THREE.AnimationClip.findByName(gl.animations,'Idle')||gl.animations[0]).play();CWE.mx=mx}
+ if(mx)CWE.mx=mx;
 }).catch(e=>console.error('CEWE GLB',e));
 
 /* animasi mengikuti dt game (ikut timestep tetap saat merekam cinematic), hanya saat cewe terlihat */
