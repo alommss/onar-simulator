@@ -756,12 +756,12 @@ function camWallClamp(T){try{
   if(ok&&t0>0&&t0<best)best=t0}
  if(best<1){const k=Math.max(.06,best-.03);cam.position.set(tx+dx*k,ty+dy*k,tz+dz*k)}
 }catch(e){}}
-function frameOW(dt){
+function frameOW(dt){if(window.CWE_tick)CWE_tick(dt);
  try{ONL.tick(dt)}catch(e){console.error(e)}
  roadWall();
   if(!ow.foot){const lzB=ow.x+20;if(ow.z>=-GPE&&ow.z<=60){const pl=window.GP_LZ;if(pl!=null){if(pl>35.9&&lzB<35.9){ow.x=-20+35.9;P.v*=.5}else if(pl<33.9&&lzB>33.9){ow.x=-20+33.9;P.v*=.5}}window.GP_LZ=ow.x+20}else window.GP_LZ=null}else window.GP_LZ=null;
   for(const q of (window.GP_POLES||[])){const o=ow.foot?wk:ow,dx=o.x-q[0],dz=o.z-q[1],d=Math.hypot(dx,dz),r=ow.foot?.55:.8;if(d<r&&d>.001){o.x=q[0]+dx/d*r;o.z=q[1]+dz/d*r;if(!ow.foot)P.v*=.5}}
- trotWall();barWall();if(window.truWall)window.truWall();polWall();if(typeof fuelFrame==='function')fuelFrame(dt);pillarWall();spbuWall();const T=ow.foot?wk:ow,spd=ow.foot?Math.abs(wk.v):P.v;pov=CAM.mode===1;if(CAM.mode===5&&ow.foot)cyaw=CAM.yaw-ow.cb;updBlocks();{const Q=DR.on?DR:T;owRoad.position.set(Math.round(Q.x/80)*80,0,Math.round(Q.z/80)*80)}
+ trotWall();barWall();if(window.truWall)window.truWall();polWall();if(window.bmwWall)window.bmwWall();if(typeof fuelFrame==='function')fuelFrame(dt);pillarWall();spbuWall();const T=ow.foot?wk:ow,spd=ow.foot?Math.abs(wk.v):P.v;pov=CAM.mode===1;if(CAM.mode===5&&ow.foot)cyaw=CAM.yaw-ow.cb;updBlocks();{const Q=DR.on?DR:T;owRoad.position.set(Math.round(Q.x/80)*80,0,Math.round(Q.z/80)*80)}
  {const fx=-Math.sin(ow.h),fz=-Math.cos(ow.h),wH=d=>{const x=ow.x+fx*d,z=ow.z+fz*d;return Math.max(gpcH(x,z),gpcH(x+fx*.22,z+fz*.22),gpcH(x-fx*.22,z-fz*.22))},Hf=wH(.67),Hr=wH(-.6),tgB=Hr+(Hf-Hr)*.6/1.27,tgY=ow.foot?gpcH(wk.x,wk.z):tgB,tgP=Math.atan2(Hf-Hr,1.27);
  gpcGY+=(tgY-gpcGY)*Math.min(1,dt*(tgY>gpcGY?45:18));gpcBY+=(tgB-gpcBY)*Math.min(1,dt*(tgB>gpcBY?45:18));gpcPitch+=(tgP-gpcPitch)*Math.min(1,dt*12);
  const sp=Math.sin(gpcPitch),nb=Math.max(Hr-(gpcBY-sp*.6),Hf-(gpcBY+sp*.67),0);if(nb>0)gpcBY+=nb;
