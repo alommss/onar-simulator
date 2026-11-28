@@ -1,7 +1,7 @@
 /* ===== BMW M3 2007 + CEWE (ANIMASI IDLE) + CINEMATIC BLUR + REDAM TERANG GREEN PRAMUKA =====
    Model: models/bmw_m3_2007.glb dan models/tobrut_animated.glb (byte asli, tidak diubah).
-   BMW.x, BMW.z   = titik tengah mobil di dunia (koordinat HUD: X 7.1  Z 43.0)
-   BMW.hdeg       = arah hadap depan mobil (derajat, sama seperti H di HUD). 183 = depan mobil menghadap ke arah pemain yang datang dari H 3.
+   BMW.x, BMW.z   = titik tengah mobil di dunia (koordinat HUD: X 16.0  Z 52.1)
+   BMW.hdeg       = arah hadap depan mobil (derajat, sama seperti H di HUD). 358 = depan mobil menghadap lurus ke depan searah H 358 di HUD.
    BMW.y          = tinggi alas (0 = aspal/lantai dasar).  BMW.on=false untuk menyembunyikan.
    CWE.beside     = jarak cewe ke KIRI mobil (meter dari sumbu mobil), CWE.along = geser maju (+) / mundur (-) searah mobil.
    CWE.tinggi     = tinggi cewe (meter).  CWE.hdeg = arah hadap cewe (null = sama dengan mobil).
@@ -163,7 +163,7 @@ function init(){
 'use strict';
 if(typeof owG==='undefined'||typeof chB64ToBuf!=='function'||typeof THREE==='undefined')return;
 const D2R=Math.PI/180;
-const BMW=window.BMW={on:true,x:7.1,z:43.0,y:0,hdeg:183,hl:2.3,hw:.95,far:260};
+const BMW=window.BMW={on:true,x:16.0,z:52.1,y:0,hdeg:358,hl:2.3,hw:.95,far:260};
 const CWE=window.CWE={on:true,beside:1.75,along:.3,y:0,tinggi:1.68,hdeg:null,far:90,r:.32,lift:.05};
 const ch=BMW.hdeg*D2R,fwd=[-Math.sin(ch),-Math.cos(ch)],left=[-Math.cos(ch),Math.sin(ch)]; /* depan & kiri mobil di dunia */
 BMW.h=ch+Math.PI; /* model menghadap +z, jadi + PI supaya depan mobil searah H (sama seperti mobil polisi) */
